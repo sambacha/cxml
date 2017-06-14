@@ -1,12 +1,11 @@
 {
-  "name": "cxml",
-  "version": "0.2.0",
+  "name": "@wikipathways/cxml",
+  "version": "0.2.1-1",
   "description": "Advanced schema-aware streaming XML parser",
   "main": "dist/cxml.js",
   "typings": "dist/cxml.d.ts",
   "scripts": {
-    "tsc": "tsc",
-    "prepublish": "tsc -p src",
+    "build": "tsc -p tsconfig.json",
     "test": "tsc -p test && node test/dir-example.js"
   },
   "author": "Juha Järvi",
