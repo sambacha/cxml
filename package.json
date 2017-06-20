@@ -5,8 +5,47 @@
   "main": "dist/cxml.js",
   "typings": "dist/cxml.d.ts",
   "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "test": "tsc -p test && node test/dir-example.js"
+    "build": "npm-run-all build:*",
+    "build:clean": "mkdir -p dist && rm -rf dist/",
+    "build:copy": "mkdir -p dist/topublish && cp src/topublish/XPathParser*.js dist/topublish/",
+    "build:compile": "tsc -p tsconfig.json",
+    "test": "npm-run-all test:*",
+    "test:build": "npm-run-all test:build:*",
+    "test:build:clean": "cd test && mkdir -p cache && rm -rf cache && mkdir -p xmlns && rm -rf xmlns && cd ..",
+    "test:build:compile": "cd test && node ../../cxsd/bin/cxsd https://cdn.rawgit.com/ariutta/GPML/e869fe1dcd824348bc4e00ef283547ff8b7b371c/GPML2013a.xsd && cd ..",
+    "test:build:rename": "npm-run-all test:build:rename:*",
+    "test:build:rename:rdf": "mv ./test/xmlns/www.w3.org/1999/02/22-rdf-syntax-ns_.js ./test/xmlns/www.w3.org/1999/02/22-rdf-syntax-ns.js && mv ./test/xmlns/www.w3.org/1999/02/22-rdf-syntax-ns_.d.ts ./test/xmlns/www.w3.org/1999/02/22-rdf-syntax-ns.d.ts",
+    "test:build:rename:bp": "mv ./test/xmlns/www.biopax.org/release/biopax-level3.owl_.d.ts ./test/xmlns/www.biopax.org/release/biopax-level3.owl.d.ts && mv ./test/xmlns/www.biopax.org/release/biopax-level3.owl_.js ./test/xmlns/www.biopax.org/release/biopax-level3.owl.js",
+    "test:localize": "npm-run-all test:localize:*",
+    "test:localize:2013a.js": "cd ./test/xmlns/pathvisio.org/GPML/ && sed -i '' 's/@wikipathways\\/cxml/..\\/..\\/..\\/..\\/src\\/cxml/' 2013a.js > 2013a.js && cd ../../../../",
+    "test:localize:2013a.d.ts": "cd ./test/xmlns/pathvisio.org/GPML/ && sed -i '' 's/@wikipathways\\/cxml/..\\/..\\..\\/..\\/src\\/cxml/' 2013a.d.ts > 2013a.d.ts && cd ../../../../",
+    "test:localize:biopax-level3.owl.js": "cd ./test/xmlns/www.biopax.org/release/ && sed -i '' 's/@wikipathways\\/cxml/..\\/..\\/..\\/..\\/src\\/cxml/' biopax-level3.owl.js > biopax-level3.owl.js && cd ../../../../",
+    "test:localize:biopax-level3.owl.d.ts": "cd ./test/xmlns/www.biopax.org/release/ && sed -i '' 's/@wikipathways\\/cxml/..\\/..\\..\\/..\\/src\\/cxml/' biopax-level3.owl.d.ts > biopax-level3.owl.d.ts && cd ../../../../",
+    "test:localize:22-rdf-syntax-ns.js": "cd ./test/xmlns/www.w3.org/1999/02/ && sed -i '' 's/@wikipathways\\/cxml/..\\/..\\/..\\/..\\/..\\/src\\/cxml/' 22-rdf-syntax-ns.js > 22-rdf-syntax-ns.js && cd ../../../../../",
+    "test:localize:22-rdf-syntax-ns.d.ts": "cd ./test/xmlns/www.w3.org/1999/02/ && sed -i '' 's/@wikipathways\\/cxml/..\\/..\\..\\/..\\/..\\/src\\/cxml/' 22-rdf-syntax-ns.d.ts > 22-rdf-syntax-ns.d.ts && cd ../../../../../",
+    "test:localize:xml-primitives.js": "cd ./test/xmlns/ && sed -i '' 's/@wikipathways\\/cxml/..\\/..\\/src\\/cxml/' xml-primitives.js > xml-primitives.js && cd ../../",
+    "test:localize:xml-primitives.d.ts": "cd ./test/xmlns/ && sed -i '' 's/@wikipathways\\/cxml/..\\/..\\/src\\/cxml/' xml-primitives.d.ts > xml-primitives.d.ts && cd ../../",
+    "test:run": "jest",
+    "test-old": "npm-run-all test-old:*",
+    "test-old:clean": "cd test && mkdir -p cache && rm -rf cache/ && cd ..",
+    "test-old:xsd": "cd test && node ../../cxsd/bin/cxsd https://cdn.rawgit.com/charto/cxml/develop/test/cache/xsd/localhost/dir-example.xsd && cd ..",
+    "test-old:localize": "npm-run-all test-old:localize:*",
+    "test-old:localize:dir-example.js": "sed 's/@wikipathways\\/cxml/..\\/..\\/src\\/cxml/' test\\/xmlns\\/dir-example.js > test\\/xmlns\\/dir-example.js",
+    "test-old:localize:dir-example.d.ts": "sed 's/@wikipathways\\/cxml/..\\/..\\/src\\/cxml/' test\\/xmlns\\/dir-example.d.ts > test\\/xmlns\\/dir-example.d.ts",
+    "test-old:compile": "tsc -p test",
+    "test-old:run": "node test/dir-example.js"
+  },
+  "jest": {
+    "moduleFileExtensions": [
+      "ts",
+      "tsx",
+      "js"
+    ],
+    "testEnvironment": "node",
+    "transform": {
+      "\\.(ts|tsx|.js|.jsx)$": "<rootDir>/node_modules/ts-jest/preprocessor.js"
+    },
+    "testRegex": "((/src/.*\\.test\\.(ts|tsx|js))|(/test/spec/.*\\.(ts|tsx|js)))$"
   },
   "author": "Juha Järvi",
   "license": "MIT",
@@ -29,12 +68,21 @@
   ],
   "dependencies": {
     "@types/bluebird": "^3.0.37",
+    "@types/lodash": "^4.14.66",
     "@types/node": "^7.0.0",
     "@types/sax": "0.0.28",
     "bluebird": "^3.4.7",
+    "lodash": "^4.17.4",
     "sax": "~1.2.1"
   },
   "devDependencies": {
-    "typescript": "^2.1.5"
+    "@types/circular-json": "^0.1.30",
+    "@types/jest": "^19.2.4",
+    "circular-json": "^0.3.1",
+    "jest": "^20.0.4",
+    "npm-run-all": "^4.0.2",
+    "source-map-support": "^0.4.15",
+    "ts-jest": "^20.0.6",
+    "typescript": "^2.3.4"
   }
 }
