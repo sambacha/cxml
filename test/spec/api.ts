@@ -1,9 +1,9 @@
 import * as cxml from "../..";
-import * as example from "../xmlns/dir-example";
 import * as Promise from "bluebird";
-import * as gpml from "../xmlns/pathvisio.org/GPML/2013a";
 var fs = require("fs");
 var path = require("path");
+import * as gpml from "../xmlns/pathvisio.org/GPML/2013a";
+import * as example from "../xmlns/dir-example";
 
 jasmine.DEFAULT_TIMEOUT_INTERVAL = 20 * 1000;
 
@@ -159,6 +159,35 @@ test("parse string and stream w/ parser attachments", done => {
   });
 });
 
+test("attach to and parse broken Pathway from string", done => {
+  var parser = new cxml.Parser();
+  parser.attach(
+    class CustomHandler extends gpml.document.Pathway.constructor {
+      _before() {
+        console.log("Before:");
+        console.log(JSON.stringify(this));
+        expect(typeof this).toBe("object");
+      }
+
+      _after() {
+        console.log("After:");
+        console.log(JSON.stringify(this));
+        expect(typeof this).toBe("object");
+      }
+    }
+  );
+  var result = parser.parse(
+    '<DataNode name="sample pathway"><Comment>hello there</Comment></DataNode>',
+    gpml.document
+  );
+  result.then(doc => {
+    console.log("\n=== 123 ===\n");
+    console.log(JSON.stringify(doc, null, 2));
+    expect(typeof doc).toBe("object");
+    done();
+  });
+});
+
 test("attach to and parse Pathway from string", done => {
   var parser = new cxml.Parser();
   parser.attach(
@@ -178,7 +207,7 @@ test("attach to and parse Pathway from string", done => {
   );
   var result = parser.parse(
     '<Pathway name="sample pathway"><Comment>hello there</Comment></Pathway>',
-    example.document
+    gpml.document
   );
   result.then(doc => {
     console.log("\n=== 123 ===\n");
@@ -207,7 +236,7 @@ test("attach to and parse Pathway from stream", done => {
   );
   var result = parser.parse(
     fs.createReadStream(path.resolve(__dirname, "../input/one-of-each.gpml")),
-    example.document
+    gpml.document
   );
   result.then(doc => {
     console.log("\n=== 123 ===\n");
@@ -239,7 +268,7 @@ test("attach to and parse Pathway from stream", done => {
 //  );
 //  var result = parser.parse(
 //    fs.createReadStream(path.resolve(__dirname, "../input/one-of-each.gpml")),
-//    example.document
+//    gpml.document
 //  );
 //  result.then(doc => {
 //    console.log("\n=== 123 ===\n");
@@ -250,15 +279,14 @@ test("attach to and parse Pathway from stream", done => {
 //});
 
 ////***************************
-//// TODO _before and _after is returning nothing for GPML, but it does for the dir-example.xml file
 //var parser1 = new cxml.Parser();
 //var result1 = parser1.parse(
 //  fs.createReadStream(path.resolve(__dirname, "../input/one-of-each.gpml")),
-//  example.document
+//  gpml.document
 //);
 //
 //parser1.attach(
-//  class CustomHandler extends example.document.Pathway.constructor {
+//  class CustomHandler extends gpml.document.Pathway.constructor {
 //    _before() {
 //      console.log("this _before");
 //      console.log(this);
@@ -281,13 +309,12 @@ test("attach to and parse Pathway from stream", done => {
 //
 //var result = parser.parse(
 //  fs.createReadStream(path.resolve(__dirname, "../input/one-of-each.gpml")),
-//  example.document
+//  gpml.document
 //);
 //
-//// TODO get _before and _after to work
 //test("attach to Pathway", done => {
 //  parser.attach(
-//    class CustomHandler extends example.document.Pathway.constructor {
+//    class CustomHandler extends gpml.document.Pathway.constructor {
 //      _before() {
 //        console.log("this _before");
 //        console.log(this);
@@ -303,7 +330,7 @@ test("attach to and parse Pathway from stream", done => {
 //});
 //
 //parser.attach(
-//  class CustomHandler extends example.document.Pathway.Comment[0].constructor {
+//  class CustomHandler extends gpml.document.Pathway.Comment[0].constructor {
 //    _before() {
 //      //expect(typeof this).toBe("object");
 //    }
@@ -326,7 +353,7 @@ test("attach to and parse Pathway from stream", done => {
 ////  let iAfter = 0;
 ////  expect.assertions(1);
 ////  parser.attach(
-////    class CustomHandler extends example.document.Pathway.Comment[0]
+////    class CustomHandler extends gpml.document.Pathway.Comment[0]
 ////      .constructor {
 ////      _before() {
 ////        //expect(typeof this).toBe("object");
@@ -352,7 +379,7 @@ test("attach to and parse Pathway from stream", done => {
 ////test("attach to Pathway.DataNode[0].Comment[0]", done => {
 ////  let called = false;
 ////  parser.attach(
-////    class CustomHandler extends example.document.Pathway.DataNode[0].Comment[0]
+////    class CustomHandler extends gpml.document.Pathway.DataNode[0].Comment[0]
 ////      .constructor {
 ////      /*
 ////      _before() {
@@ -385,33 +412,33 @@ test("attach to and parse Pathway from stream", done => {
 //});
 //
 ///*
-//console.log("example.document.Pathway.Comment[0].constructor.toString()");
-//console.log(example.document.Pathway.Comment[0].constructor.toString());
-//console.log(example.document.Pathway.Comment[0].constructor);
-//console.log(example.document.Pathway.Comment[0]);
+//console.log("gpml.document.Pathway.Comment[0].constructor.toString()");
+//console.log(gpml.document.Pathway.Comment[0].constructor.toString());
+//console.log(gpml.document.Pathway.Comment[0].constructor);
+//console.log(gpml.document.Pathway.Comment[0]);
 //
 //console.log(
-//  "example.document.Pathway.DataNode[0].Comment[0].constructor.toString()"
+//  "gpml.document.Pathway.DataNode[0].Comment[0].constructor.toString()"
 //);
 //console.log(
-//  example.document.Pathway.DataNode[0].Comment[0].constructor.toString()
+//  gpml.document.Pathway.DataNode[0].Comment[0].constructor.toString()
 //);
-//console.log(example.document.Pathway.DataNode[0].Comment[0].constructor);
-//console.log(example.document.Pathway.Comment[0]);
+//console.log(gpml.document.Pathway.DataNode[0].Comment[0].constructor);
+//console.log(gpml.document.Pathway.Comment[0]);
 ////*/
 //
 //// passes
 //test("path awareness1", () => {
-//  expect(example.document.Pathway.Comment).not.toBe(
-//    example.document.Pathway.DataNode[0].Comment
+//  expect(gpml.document.Pathway.Comment).not.toBe(
+//    gpml.document.Pathway.DataNode[0].Comment
 //  );
 //});
 //
 ///*
 //// fails
 //test("path awareness2", () => {
-//  expect(example.document.Pathway.Comment[0]).not.toBe(
-//    example.document.Pathway.DataNode[0].Comment[0]
+//  expect(gpml.document.Pathway.Comment[0]).not.toBe(
+//    gpml.document.Pathway.DataNode[0].Comment[0]
 //  );
 //});
 ////*/
