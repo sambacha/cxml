@@ -2,7 +2,7 @@
 // Released under the MIT license, see LICENSE.
 
 import "source-map-support/register";
-import { keys, toPairs } from "lodash";
+import { defaultsDeep, keys, toPairs } from "lodash";
 import * as stream from "stream";
 import * as Promise from "bluebird";
 import * as sax from "sax";
@@ -13,9 +13,25 @@ import { Rule, RuleClass, HandlerInstance } from "./Rule";
 import { MemberRef } from "../xml/MemberRef";
 import { State } from "./State";
 import { defaultContext } from "../importer/JS";
-import { parse } from "../topublish/xpath";
+import { parse, ItemParsed } from "../topublish/xpath";
 
-import * as CircularJSON from "circular-json";
+// TODO is the type definition as correct as it can be?
+/*
+{
+	xpathEl(obj): {
+ 	  _before: Function,
+ 	  _after: Function,
+		xpathEl(obj): {
+			_before: Function,
+			_after: Function,
+		}(Map),
+	}(Map)
+}(Map)
+//*/
+export type AttachmentNames = "_after" | "_before";
+export type BTreeFinal = Map<AttachmentNames, Function>;
+export type BTreeIntermediate<T> = Map<ItemParsed, T | BTreeFinal>;
+export type BTree<T> = BTreeIntermediate<T> & BTreeFinal;
 
 export interface CxmlDate extends Date {
   cxmlTimezoneOffset: number;
@@ -33,55 +49,46 @@ function getPath(state: State, acc: string[] = []): string[] {
   }
 }
 
-function findInMapIter(mapIter: any, compare: (x: any) => boolean): any {
-  //console.log("findInMapIter/mapIter37");
-  //console.log(mapIter);
+function findInMapIter<T>(
+  mapIter: Iterator<[ItemParsed, any]>,
+  compare: (x: ItemParsed) => boolean
+): BTree<T> {
   const next = mapIter.next();
-  //console.log("findInMapIter/next");
-  //console.log(next);
   const { value, done } = next;
-  //console.log(`findInMapIter/done: ${done}`);
-  //console.log("findInMapIter/value40");
-  //console.log(value);
   if (!value) {
     return;
   }
-  //console.log("value38");
-  //console.log(value);
   const [k, v] = value;
   if (!compare(k)) {
     if (done) {
-      //console.log(`done: ${done}`);
       return;
     }
-    return findInMapIter(mapIter, compare);
+    return findInMapIter<T>(mapIter, compare);
   } else {
     return v;
   }
 }
 
+/*
+function findEntry<T>(
+  mapIter: Iterator<[ItemParsed, any]>,
+  compare: (x: ItemParsed) => boolean
+): [ItemParsed, any] {}
+//*/
+
 function findEntry(
   mapIter: any,
   compare: (x: any) => boolean
-): [any, any] | any[] {
-  //console.log("findEntry/mapIter63");
-  //console.log(mapIter);
+): [Map<string, any>, any] {
   const entry = mapIter.next();
-  //console.log("entry63");
-  //console.log(entry);
   const { value, done } = entry;
-  //console.log("value69");
-  //console.log(value);
   if (!value) {
-    return [];
+    return;
   }
-  //console.log("value74");
-  //console.log(value);
   const [k, v] = value;
   if (!compare(k)) {
     if (done) {
-      //console.log(`done79: ${done}`);
-      return [];
+      return;
     }
     return findEntry(mapIter, compare);
   } else {
@@ -89,64 +96,57 @@ function findEntry(
   }
 }
 
-function getAttached(state: State, bTree: any, attachment: string): any {
-  console.log("getAttached/state");
-  console.log(state);
-  console.log("getAttached/bTree");
-  console.log(bTree);
-  console.log(`getAttached/attachment: ${attachment}`);
+function getAttached<T>(
+  state: State,
+  bTree: BTree<T>,
+  attachment: AttachmentNames
+): any {
   const name =
-    state.memberRef && state.memberRef.member && state.memberRef.member.name;
-  const parent = state.parent;
+    !!state.memberRef &&
+    !!state.memberRef.member &&
+    state.memberRef.member.name;
 
-  if (!name || !parent) {
+  if (!name) {
+    // NOTE: because of how the state is defined for _before vs. _after,
+    // we expect to not have name for _after but not for _before
+    if (attachment === "_before") {
+      console.warn(
+        `Missing state.memberRef.member.name in getAttached for ${attachment}`
+      );
+      console.log("state");
+      console.log(state);
+      console.log("bTree");
+      console.log(bTree);
+    }
     const attached = bTree.get(attachment);
     if (attached) {
       return attached;
+    } else {
+      throw new Error("Missing attached in getAttached");
     }
   }
 
-  /*
-  const mapIter = bTree.entries();
-	mapIter.next().value
-	//*/
-
-  console.log(`getAttached/name97: ${name}`);
-  const value = findInMapIter(bTree.entries(), function(k: any) {
+  const value = findInMapIter(bTree.entries(), function(k: ItemParsed) {
     return k["name"] === name;
   });
-  console.log("getAttached/value104");
-  console.log(value);
-  /*
-  for (var [key, value] of bTree.entries()) {
-    console.log(key + " = " + value);
-  }
-	//*/
-
-  /*
-  console.log(
-    bTree.get({
-      axis: "/",
-      namespace: null,
-      name: "Comment",
-      predicates: undefined,
-      attribute: null
-    })
-  );
-	//*/
 
   if (!value) {
+    // NOTE: we can end up here because there is no direct connection between
+    // a Parser instance's attach and _parse methods. They actually just
+    // connect via the rule.handler prototype. So it's possible for one
+    // attachment to set something on the rule.handler prototype, meaning it
+    // appears to exist when we look at item._before or item._after in _parser,
+    // but it doesn't actually exist for this xpath when we match the
+    // state and bTree, level by level, up to the point where there should be
+    // a _before or _after.
     return;
-  } else if (!!parent) {
-    console.log("getAttached/parent");
-    console.log(parent);
-    const parentBTree = bTree.get(value);
+  }
+
+  const parent = state.parent;
+  if (!!parent) {
     return getAttached(parent, value, attachment);
   } else {
-    const aFn = bTree.get(attachment);
-    console.log("getAttached/aFn");
-    console.log(aFn);
-    return aFn;
+    return value.get(attachment);
   }
 }
 
@@ -199,25 +199,8 @@ function convertPrimitive(text: string, type: Rule) {
   return null;
 }
 
-/*
-{
-	xpathEl(obj): {
- 	  _before: Function,
- 	  _after: Function,
-		xpathEl(obj): {
-			_before: Function,
-			_after: Function,
-		}(Map),
-	}(Map)
-}(Map)
-//*/
-
 export class Parser {
-  _before: { [key: string]: Function } = {};
-  _after: { [key: string]: Function } = {};
   bTree: any = new Map();
-  _beforeBTree: any = new Map();
-  _afterBTree: any = new Map();
   attach<CustomHandler extends HandlerInstance>(
     handler: {
       new (): CustomHandler;
@@ -228,34 +211,39 @@ export class Parser {
     var realHandler = (handler as RuleClass).rule.handler;
     var realProto = realHandler.prototype as CustomHandler;
 
+    /*
+    console.log("handler");
+    console.log(handler);
+
+    console.log("realHandler");
+    console.log(realHandler);
+
+    console.log("proto");
+    console.log(proto);
+
+    console.log("realProto pre-assign");
+    console.log(realProto);
+		//*/
+
     for (var key of Object.keys(proto)) {
       realProto[key] = proto[key];
     }
 
-    // TODO is this really the best way
-    // to do this?
-    let { _before, _after } = this;
-    if (xpath) {
-      /*
-			const _befores = keys(_before || {}).map(function(b) {
-				const components = b.split("/");
-			});
-			//*/
+    /*
+    console.log("realProto post-assign");
+    console.log(realProto);
+		//*/
 
-      if (realProto._before || realProto._after) {
+    // TODO is this really the best way to do this?
+    const { _before, _after } = realProto;
+    if (xpath) {
+      if (_before || _after) {
         const parsedXPathR = parse(xpath).reverse();
-        //const finalItem = parsedXPathR.pop();
-        //const finalItem = parsedXPathR[parsedXPathR.length - 1];
         const finalItem = parsedXPathR.reduce(function(parentNode, xpathEl) {
-          //console.log("xpathEl");
-          //console.log(xpathEl);
-          // TODO finish building a BTree to follow to get _before and _before functions.
           const xpathElPairs = toPairs(xpathEl);
-          //console.log("xpathElPairs");
-          //console.log(xpathElPairs);
-          let [
-            currentNode,
-            currentValue
+          let [currentNode, currentValue]: [
+            Map<string, any>,
+            ItemParsed
           ] = findEntry(parentNode.entries(), function(candidateValue) {
             console.log("candidateValue");
             console.log(candidateValue);
@@ -267,54 +255,18 @@ export class Parser {
                 isRunningMatch && candidateValue[xpathElKey] === xpathElValue
               );
             }, true);
-          });
-          currentNode = currentNode || new Map();
-          currentValue = currentValue || xpathEl;
+          }) || [new Map(), xpathEl];
           parentNode.set(currentValue, currentNode);
           return currentNode;
         }, this.bTree);
 
-        /*
-        const _beforeFinalItem = parsedXPathR.reduce(function(acc, item) {
-          // TODO finish building a BTree to follow to get _before and _before functions.
-          let current = acc.get(item) || new Map();
-          acc.set(item, current);
-          return current;
-        }, this._beforeBTree);
-
-        const _afterFinalItem = parsedXPathR.reduce(function(acc, item) {
-          // TODO finish building a BTree to follow to get _before and _after functions.
-          let current = acc.get(item) || new Map();
-          acc.set(item, current);
-          return current;
-        }, this._afterBTree);
-				//*/
-
-        if (realProto._before) {
-          finalItem.set("_before", realProto._before);
-          //_beforeFinalItem.set("_before", realProto._before);
+        if (_before) {
+          finalItem.set("_before", _before);
         }
-        if (realProto._after) {
-          finalItem.set("_after", realProto._after);
-          //_afterFinalItem.set("_after", realProto._after);
+        if (_after) {
+          finalItem.set("_after", _after);
         }
-        console.log("this.bTree");
-        console.log(this.bTree);
-        /*
-        console.log("this._beforeBTree");
-        console.log(this._beforeBTree);
-        console.log("this._afterBTree");
-        console.log(this._afterBTree);
-				//*/
       }
-      /*
-      if (realProto._before) {
-        _before[xpath] = realProto._before;
-      }
-      if (realProto._after) {
-        _after[xpath] = realProto._after;
-      }
-			//*/
     }
 
     realHandler._custom = true;
@@ -345,8 +297,15 @@ export class Parser {
     resolve: (item: Output) => void,
     reject: (err: any) => void
   ) {
-    const { _before, _after, bTree } = this;
+    const { bTree } = this;
+    //let _before: Function | undefined, _after: Function | undefined;
     var xml = sax.createStream(true, { position: true });
+    /*
+    console.log("output");
+    console.log(output);
+    console.log("output.constructor.prototype");
+    console.log(output.constructor.prototype);
+		//*/
     let rule = (output.constructor as RuleClass).rule;
     var xmlSpace = context.registerNamespace(
       "http://www.w3.org/XML/1998/namespace"
@@ -437,11 +396,22 @@ export class Parser {
         }
       }
 
-      //console.log("rule422");
-      //console.log(rule);
       if (rule && !rule.isPlainPrimitive) {
-        console.log("opentag424");
         item = new rule.handler();
+        //item._before = undefined;
+        /*
+        delete item._before;
+        delete item._after;
+        delete item.prototype._before;
+        delete item.prototype._after;
+				//*/
+        /*
+        _before = item._before;
+        _after = item._after;
+        let proto = rule.handler.prototype;
+        delete proto._before;
+        delete proto._after;
+				//*/
 
         // Parse all attributes.
 
@@ -457,7 +427,7 @@ export class Parser {
             if (attrNamespace) {
               attr = attrNamespace[1] + key.substr(splitter + 1);
             } else {
-              console.log("Namespace not found for " + key);
+              console.warn("Namespace not found for " + key);
               continue;
             }
           } else {
@@ -486,30 +456,14 @@ export class Parser {
           value: node.name
         });
 
-        console.log("item468");
-        console.log(item);
-        //if (item._before) item._before();
+        console.log("item._before");
+        console.log(item._before);
         if (item._before) {
-          //console.log("state");
-          //console.log(state);
-          //console.log(CircularJSON.stringify(state, null, "  "));
-          //console.log("bTree");
-          //console.log(bTree);
-          console.log("_before is on item");
-          const thisBefore = getAttached(state, bTree, "_before");
+          const altState = { ...state, memberRef: child };
+          const thisBefore = getAttached(altState, bTree, "_before");
           if (!!thisBefore) {
-            console.log("thisBefore");
-            console.log(thisBefore);
+            thisBefore.call(item);
           }
-          /*
-          const tagName = getPath(state).join("/");
-          console.log(`tagName _before: ${tagName}`);
-          console.log("state _before");
-          console.log(state);
-          if (_before[tagName]) {
-            _before[tagName].call(item);
-          }
-					//*/
         }
       }
 
@@ -542,16 +496,8 @@ export class Parser {
       if (obj && obj._after) {
         const thisAfter = getAttached(state, bTree, "_after");
         if (!!thisAfter) {
-          console.log("thisAfter");
-          console.log(thisAfter);
           thisAfter.call(obj);
         }
-        /*
-        const tagName = getPath(state).join("/");
-        if (_after[tagName]) {
-          _after[tagName].call(obj);
-        }
-				//*/
       }
 
       state = state.parent;
