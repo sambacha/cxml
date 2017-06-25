@@ -219,7 +219,7 @@ export class Parser {
     /*
     realProto._before = function() {};
     realProto._after = function() {};
-		//*/
+    //*/
 
     // TODO is this really the best way to do this?
     const { _before, _after } = proto;
@@ -318,6 +318,8 @@ export class Parser {
     }
 
     xml.on("opentag", (node: sax.Tag) => {
+      console.log("node321");
+      console.log(node);
       var attrTbl = node.attributes;
       var attr: string;
       var nodePrefix = "";
@@ -334,6 +336,10 @@ export class Parser {
           var nsParts = key.match(/^xmlns(:(.+))?$/);
 
           if (nsParts) {
+            console.log("nsParts339");
+            console.log(nsParts);
+            console.log("attrTbl[key]");
+            console.log(attrTbl[key]);
             addNamespace(
               nsParts[2] || "",
               context.registerNamespace(attrTbl[key])
@@ -353,15 +359,25 @@ export class Parser {
 
       var nodeNamespace = namespaceTbl[nodePrefix];
       name = nodeNamespace[1] + name;
+      console.log("name362");
+      console.log(name);
 
       var child: MemberRef;
       let rule: Rule;
 
+      console.log("state360");
+      console.log(state);
       if (state.rule) {
+        console.log("state.rule.childTbl371");
+        console.log(state.rule.childTbl);
         child = state.rule.childTbl[name];
 
         if (child) {
+          console.log("child376");
+          console.log(child);
           if (child.proxy) {
+            console.log("child379");
+            console.log(child);
             rule = child.proxy.member.rule;
             state = new State(
               state,
@@ -376,7 +392,11 @@ export class Parser {
         }
       }
 
+      console.log("hey395");
+      console.log("rule");
+      console.log(rule);
       if (rule && !rule.isPlainPrimitive) {
+        console.log("hey399");
         item = new rule.handler();
 
         // Parse all attributes.
@@ -424,7 +444,11 @@ export class Parser {
 
         const altState = { ...state, memberRef: child };
         const thisBefore = getAttached(altState, bTree, "_before");
+        console.log("hey429");
+        console.log("item._before");
+        console.log(item._before);
         if (!!thisBefore) {
+          console.log("hey431");
           thisBefore.call(item);
         }
       }
