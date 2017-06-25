@@ -212,9 +212,12 @@ export class Parser {
     var realProto = realHandler.prototype as CustomHandler;
 
     for (var key of Object.keys(proto)) {
+      realProto[key] = proto[key];
+      /*
       if (["_before", "_after"].indexOf(key) === -1) {
         realProto[key] = proto[key];
       }
+			//*/
     }
     /*
     realProto._before = function() {};
