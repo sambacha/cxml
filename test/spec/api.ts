@@ -8,6 +8,8 @@ import * as example from "../xmlns/dir-example";
 jasmine.DEFAULT_TIMEOUT_INTERVAL = 20 * 1000;
 
 test("parse string", done => {
+  expect.assertions(8);
+
   var parser = new cxml.Parser();
 
   parser.attach(
@@ -40,13 +42,15 @@ test("parse string", done => {
     expect(dir instanceof example.FileType).toBe(false);
 
     expect(dir._exists).toBe(true);
-    expect(dir.file[0]._exists).toBeFalsy;
+    expect(dir.file[0]._exists).toBe(false);
 
     done();
   });
 });
 
 test("parse stream", done => {
+  expect.assertions(3);
+
   var parser = new cxml.Parser();
 
   parser.attach(
@@ -93,9 +97,9 @@ test("parse stream", done => {
 });
 
 test("parse string and stream w/ parser attachments", done => {
-  var parser = new cxml.Parser();
-
   expect.assertions(11);
+
+  var parser = new cxml.Parser();
 
   parser.attach(
     class DirHandler extends example.document.dir.constructor {
@@ -160,18 +164,24 @@ test("parse string and stream w/ parser attachments", done => {
 });
 
 test("attach to and parse broken Pathway from string", done => {
+  expect.assertions(1);
+
   var parser = new cxml.Parser();
   parser.attach(
     class CustomHandler extends gpml.document.Pathway.constructor {
       _before() {
+        /*
         console.log("Before:");
         console.log(JSON.stringify(this));
+				//*/
         expect(typeof this).toBe("object");
       }
 
       _after() {
+        /*
         console.log("After:");
         console.log(JSON.stringify(this));
+				//*/
         expect(typeof this).toBe("object");
       }
     }
@@ -181,26 +191,34 @@ test("attach to and parse broken Pathway from string", done => {
     gpml.document
   );
   result.then(doc => {
+    /*
     console.log("\n=== 123 ===\n");
     console.log(JSON.stringify(doc, null, 2));
+		//*/
     expect(typeof doc).toBe("object");
     done();
   });
 });
 
 test("attach to and parse Pathway from string", done => {
+  expect.assertions(3);
+
   var parser = new cxml.Parser();
   parser.attach(
     class CustomHandler extends gpml.document.Pathway.constructor {
       _before() {
+        /*
         console.log("Before:");
         console.log(JSON.stringify(this));
+				//*/
         expect(typeof this).toBe("object");
       }
 
       _after() {
+        /*
         console.log("After:");
         console.log(JSON.stringify(this));
+				//*/
         expect(typeof this).toBe("object");
       }
     }
@@ -210,26 +228,34 @@ test("attach to and parse Pathway from string", done => {
     gpml.document
   );
   result.then(doc => {
+    /*
     console.log("\n=== 123 ===\n");
     console.log(JSON.stringify(doc, null, 2));
+		//*/
     expect(typeof doc).toBe("object");
     done();
   });
 });
 
 test("attach to and parse Pathway from stream", done => {
+  expect.assertions(3);
+
   var parser = new cxml.Parser();
   parser.attach(
     class CustomHandler extends gpml.document.Pathway.constructor {
       _before() {
+        /*
         console.log("Before:");
         console.log(JSON.stringify(this));
+				//*/
         expect(typeof this).toBe("object");
       }
 
       _after() {
+        /*
         console.log("After:");
         console.log(JSON.stringify(this));
+				//*/
         expect(typeof this).toBe("object");
       }
     }
@@ -239,8 +265,10 @@ test("attach to and parse Pathway from stream", done => {
     gpml.document
   );
   result.then(doc => {
+    /*
     console.log("\n=== 123 ===\n");
     console.log(JSON.stringify(doc, null, 2));
+		//*/
     expect(typeof doc).toBe("object");
     done();
   });
