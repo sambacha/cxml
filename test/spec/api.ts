@@ -12,185 +12,193 @@ jasmine.DEFAULT_TIMEOUT_INTERVAL = 20 * 1000;
 // will make other tests expect an assertion count as if
 // they had an attachment, even if they don't.
 
-test("Attach handler w/ _before & _after. Parse string", () => {
-  // NOTE: this assertion count is NOT taking into account
-  // the commented out expect below regarding
-  // "dir instanceof example.document.dir.constructor"
-  expect.assertions(8);
-
-  var parser = new cxml.Parser();
-
-  parser.attach(
-    class DirHandler extends example.document.dir.constructor {
-      _bing = "Attach handler w/ _before & _after. Parse string";
-
-      _after() {
-        expect(this).toEqual({ name: "empty" });
-      }
-
-      _before() {
-        expect(this).toEqual({ name: "empty" });
-      }
-    },
-    "/dir"
-  );
-
-  const result = parser.parse('<dir name="empty"></dir>', example.document);
-
-  return result.then((doc: example.document) => {
-    expect(doc).toEqual({ dir: { name: "empty" } });
-    var dir = doc.dir;
-
-    // TODO why doesn't this pass?
-    //expect(dir instanceof example.document.dir.constructor).toBe(true);
-    expect(dir instanceof example.document.file.constructor).toBe(false);
-
-    expect(dir instanceof example.DirType).toBe(true);
-    expect(dir instanceof example.FileType).toBe(false);
-
-    expect(dir._exists).toBe(true);
-    expect(dir.file[0]._exists).toBe(false);
-  });
-});
-
-test("Attach handler w/ _before & _after. Parse stream.", () => {
-  expect.assertions(3);
-
-  var parser = new cxml.Parser();
-
-  parser.attach(
-    class DirHandler extends example.document.dir.constructor {
-      _bing = "Attach handler w/ _before & _after. Parse stream.";
-
-      _before() {
-        expect(this.name).toBe("123");
-      }
-
-      _after() {
-        expect(this).toEqual({
-          name: "123",
-          owner: "me",
-          file: [{ name: "test", size: 123, content: "data" }]
-        });
-      }
-    },
-    "/dir"
-  );
-
-  const result = parser.parse(
-    fs.createReadStream(path.resolve(__dirname, "../xml/dir-example.xml")),
-    example.document
-  );
-
-  return result.then((doc: example.document) => {
-    expect(doc).toEqual({
-      dir: {
-        name: "123",
-        owner: "me",
-        file: [
-          {
-            name: "test",
-            size: 123,
-            content: "data"
-          }
-        ]
-      }
-    });
-  });
-});
+////test("Attach handler w/ _before & _after. Parse string", () => {
+////  // NOTE: this assertion count is NOT taking into account
+////  // the commented out expect below regarding
+////  // "dir instanceof example.document.dir.constructor"
+////  expect.assertions(8);
+////
+////  var parser = new cxml.Parser();
+////
+////  parser.attach(
+////    class DirHandler extends example.document.dir.constructor {
+////      _bing = "Attach handler w/ _before & _after. Parse string";
+////
+////      _after() {
+////        expect(this).toEqual({ name: "empty" });
+////      }
+////
+////      _before() {
+////        expect(this).toEqual({ name: "empty" });
+////      }
+////    },
+////    "/dir"
+////  );
+////
+////  const result = parser.parse('<dir name="empty"></dir>', example.document);
+////
+////  return result.then((doc: example.document) => {
+////    expect(doc).toEqual({ dir: { name: "empty" } });
+////    var dir = doc.dir;
+////
+////    // TODO why doesn't this pass?
+////    //expect(dir instanceof example.document.dir.constructor).toBe(true);
+////    expect(dir instanceof example.document.file.constructor).toBe(false);
+////
+////    expect(dir instanceof example.DirType).toBe(true);
+////    expect(dir instanceof example.FileType).toBe(false);
+////
+////    expect(dir._exists).toBe(true);
+////    expect(dir.file[0]._exists).toBe(false);
+////  });
+////});
+////
+////test("Attach handler w/ _before & _after. Parse stream.", () => {
+////  expect.assertions(3);
+////
+////  var parser = new cxml.Parser();
+////
+////  parser.attach(
+////    class DirHandler extends example.document.dir.constructor {
+////      _bing = "Attach handler w/ _before & _after. Parse stream.";
+////
+////      _before() {
+////        expect(this.name).toBe("123");
+////      }
+////
+////      _after() {
+////        expect(this).toEqual({
+////          name: "123",
+////          owner: "me",
+////          file: [{ name: "test", size: 123, content: "data" }]
+////        });
+////      }
+////    },
+////    "/dir"
+////  );
+////
+////  const result = parser.parse(
+////    fs.createReadStream(path.resolve(__dirname, "../xml/dir-example.xml")),
+////    example.document
+////  );
+////
+////  return result.then((doc: example.document) => {
+////    expect(doc).toEqual({
+////      dir: {
+////        name: "123",
+////        owner: "me",
+////        file: [
+////          {
+////            name: "test",
+////            size: 123,
+////            content: "data"
+////          }
+////        ]
+////      }
+////    });
+////  });
+////});
+////
+////test("parse string and stream w/ parser attachments", () => {
+////  expect.assertions(11);
+////
+////  var parser = new cxml.Parser();
+////
+////  parser.attach(
+////    class DirHandler extends example.document.dir.constructor {
+////      /** Fires when the opening <dir> and attributes have been parsed. */
+////
+////      _before() {
+////        expect(typeof this.name).toBe("string");
+////      }
+////
+////      /** Fires when the closing </dir> and children have been parsed. */
+////
+////      _after() {
+////        expect(typeof this.name).toBe("string");
+////      }
+////    },
+////    "/dir"
+////  );
+////
+////  const resultFromString = parser.parse(
+////    '<dir name="empty"></dir>',
+////    example.document
+////  );
+////
+////  const resultFromStream = parser.parse(
+////    fs.createReadStream(path.resolve(__dirname, "../xml/dir-example.xml")),
+////    example.document
+////  );
+////
+////  return Promise.all([resultFromString, resultFromStream]).then(function(
+////    [docFromString, docFromStream]: [example.document, example.document]
+////  ) {
+////    expect(docFromString).toEqual({ dir: { name: "empty" } });
+////
+////    var dirFromString = docFromString.dir;
+////
+////    // TODO why doesn't this pass?
+////    //expect(dirFromString instanceof example.document.dir.constructor).toBe(true);
+////    expect(dirFromString instanceof example.document.file.constructor).toBe(
+////      false
+////    );
+////
+////    expect(dirFromString instanceof example.DirType).toBe(true);
+////    expect(dirFromString instanceof example.FileType).toBe(false);
+////
+////    expect(dirFromString._exists).toBe(true);
+////    expect(dirFromString.file[0]._exists).toBe(false);
+////
+////    expect(docFromStream).toEqual({
+////      dir: {
+////        name: "123",
+////        owner: "me",
+////        file: [
+////          {
+////            name: "test",
+////            size: 123,
+////            content: "data"
+////          }
+////        ]
+////      }
+////    });
+////  });
+////});
 //
-//test("parse string and stream w/ parser attachments", () => {
-//  expect.assertions(11);
-//
-//  var parser = new cxml.Parser();
-//
-//  parser.attach(
-//    class DirHandler extends example.document.dir.constructor {
-//      /** Fires when the opening <dir> and attributes have been parsed. */
-//
-//      _before() {
-//        expect(typeof this.name).toBe("string");
-//      }
-//
-//      /** Fires when the closing </dir> and children have been parsed. */
-//
-//      _after() {
-//        expect(typeof this.name).toBe("string");
-//      }
-//    },
-//    "/dir"
-//  );
-//
-//  const resultFromString = parser.parse(
-//    '<dir name="empty"></dir>',
-//    example.document
-//  );
-//
-//  const resultFromStream = parser.parse(
-//    fs.createReadStream(path.resolve(__dirname, "../xml/dir-example.xml")),
-//    example.document
-//  );
-//
-//  return Promise.all([resultFromString, resultFromStream]).then(function(
-//    [docFromString, docFromStream]: [example.document, example.document]
-//  ) {
-//    expect(docFromString).toEqual({ dir: { name: "empty" } });
-//
-//    var dirFromString = docFromString.dir;
-//
-//    // TODO why doesn't this pass?
-//    //expect(dirFromString instanceof example.document.dir.constructor).toBe(true);
-//    expect(dirFromString instanceof example.document.file.constructor).toBe(
-//      false
-//    );
-//
-//    expect(dirFromString instanceof example.DirType).toBe(true);
-//    expect(dirFromString instanceof example.FileType).toBe(false);
-//
-//    expect(dirFromString._exists).toBe(true);
-//    expect(dirFromString.file[0]._exists).toBe(false);
-//
-//    expect(docFromStream).toEqual({
-//      dir: {
-//        name: "123",
-//        owner: "me",
-//        file: [
-//          {
-//            name: "test",
-//            size: 123,
-//            content: "data"
-//          }
-//        ]
-//      }
-//    });
-//  });
-//});
-//
-////test("attach to and parse broken Pathway from string", done => {
+////test("attach to and parse broken Pathway from string", () => {
+////  expect.assertions(3);
+////
 ////  var parser = new cxml.Parser();
 ////  parser.attach(
 ////    class CustomHandler extends gpml.document.Pathway.constructor {
 ////      _before() {
+////        console.log("this _before");
+////        console.log(this);
 ////        expect(typeof this).toBe("object");
 ////      }
 ////
 ////      _after() {
+////        console.log("this _after");
+////        console.log(this);
 ////        expect(typeof this).toBe("object");
 ////      }
 ////    },
 ////    "/Pathway"
 ////  );
-////  var result = parser.parse(
-////    '<DataNode name="sample pathway"><Comment>hello there</Comment></DataNode>',
-////    gpml.document
-////  );
-////  result.then(doc => {
-////    expect(typeof doc).toBe("object");
-////    done();
-////  });
+////  return parser
+////    .parse(
+////      '<DataNode name="sample pathway"><Comment>hello there</Comment></DataNode>',
+////      gpml.document
+////    )
+////    .then(doc => {
+////      expect(typeof doc).toBe("object");
+////    });
 ////});
 //
-//test("attach to and parse Pathway from simple string", done => {
+//test("attach to and parse Pathway from simple string", () => {
+//  expect.assertions(3);
+//
 //  var parser = new cxml.Parser();
 //  parser.attach(
 //    class CustomHandler extends gpml.document.Pathway.constructor {
@@ -204,17 +212,19 @@ test("Attach handler w/ _before & _after. Parse stream.", () => {
 //    },
 //    "/Pathway"
 //  );
-//  var result = parser.parse(
-//    '<Pathway name="sample pathway"><Comment>hello there</Comment></Pathway>',
-//    gpml.document
-//  );
-//  result.then(doc => {
-//    expect(typeof doc).toBe("object");
-//    done();
-//  });
+//  return parser
+//    .parse(
+//      '<Pathway name="sample pathway"><Comment>hello there</Comment></Pathway>',
+//      gpml.document
+//    )
+//    .then(doc => {
+//      expect(typeof doc).toBe("object");
+//    });
 //});
 //
-//test("attach to and parse Comment from nested string", done => {
+//test("attach to and parse Comment from nested string", () => {
+//  expect.assertions(3);
+//
 //  var parser = new cxml.Parser();
 //  parser.attach(
 //    class CustomHandler extends gpml.document.Pathway.Comment[0].constructor {
@@ -228,74 +238,128 @@ test("Attach handler w/ _before & _after. Parse stream.", () => {
 //    },
 //    "/Pathway"
 //  );
-//  var result = parser.parse(
-//    '<Pathway name="sample pathway"><Comment>hello there</Comment></Pathway>',
-//    gpml.document
-//  );
-//  result.then(doc => {
-//    expect(typeof doc).toBe("object");
-//    done();
-//  });
+//  return parser
+//    .parse(
+//      '<Pathway name="sample pathway"><Comment>hello there</Comment></Pathway>',
+//      gpml.document
+//    )
+//    .then(doc => {
+//      expect(typeof doc).toBe("object");
+//    });
 //});
+
+//test("attach to DataNode Comment and parse GPML", () => {
+//  var parser = new cxml.Parser();
+//  parser.attach(
+//    class CustomHandler extends gpml.document.Pathway.DataNode[0].Comment[0]
+//      .constructor {
+//      _before() {
+//        expect(typeof this).toBe("object");
+//      }
 //
-////test("attach to DataNode Comment and parse GPML", done => {
-////  var parser = new cxml.Parser();
-////  parser.attach(
-////    class CustomHandler extends gpml.document.Pathway.DataNode[0].Comment[0]
-////      .constructor {
-////      _before() {
-////        console.log("this _before");
-////        console.log(this);
-////        expect(typeof this).toBe("object");
-////      }
-////
-////      _after() {
-////        console.log("this _after");
-////        console.log(this);
-////        expect(typeof this).toBe("object");
-////      }
-////    },
-////    "/Pathway/DataNode/Comment"
-////  );
-////  var result = parser.parse(
-////    '<Pathway name="sample pathway"><Comment Source="my-pathway-comment-source">my-pathway-comment</Comment><DataNode><Comment Source="my-datanode-comment-source">my-datanode-comment</Comment></DataNode></Pathway>',
-////    gpml.document
-////  );
-////  //  var result = parser.parse(
-////  //    fs.createReadStream(path.resolve(__dirname, "../input/one-of-each.gpml")),
-////  //    gpml.document
-////  //  );
-////  result.then(doc => {
-////    //console.log("doc");
-////    //console.log(doc);
-////    expect(typeof doc).toBe("object");
-////    done();
-////  });
-////});
-//
-////test("attach to and parse Pathway from stream", done => {
-////  var parser = new cxml.Parser();
-////  parser.attach(
-////    class CustomHandler extends gpml.document.Pathway.constructor {
-////      _before() {
-////        expect(typeof this).toBe("object");
-////      }
-////
-////      _after() {
-////        expect(typeof this).toBe("object");
-////      }
-////    }
-////  );
-////  var result = parser.parse(
-////    fs.createReadStream(path.resolve(__dirname, "../input/one-of-each.gpml")),
-////    gpml.document
-////  );
-////  result.then(doc => {
-////    expect(typeof doc).toBe("object");
-////    done();
-////  });
-////});
-////
+//      _after() {
+//        expect(typeof this).toBe("object");
+//      }
+//    },
+//    "/Pathway/DataNode/Comment"
+//  );
+//  return (
+//    parser
+//      .parse(
+//        '<Pathway name="sample pathway"><Comment Source="my-pathway-comment-source">my-pathway-comment</Comment><DataNode><Comment Source="my-datanode-comment-source">my-datanode-comment</Comment></DataNode></Pathway>',
+//        gpml.document
+//      )
+//      //  var result = parser.parse(
+//      //    fs.createReadStream(path.resolve(__dirname, "../input/one-of-each.gpml")),
+//      //    gpml.document
+//      //  );
+//      .then(doc => {
+//        //console.log("doc");
+//        //console.log(doc);
+//        expect(typeof doc).toBe("object");
+//      })
+//  );
+//});
+
+test("attach to and parse Pathway from stream", () => {
+  expect.assertions(3);
+
+  var parser = new cxml.Parser();
+  parser.attach(
+    class CustomHandler extends gpml.document.Pathway.constructor {
+      _before() {
+        console.log("this _before");
+        console.log(this);
+        expect(typeof this).toBe("object");
+      }
+
+      _after() {
+        console.log("this _after");
+        console.log(this);
+        expect(typeof this).toBe("object");
+      }
+    },
+    "/Pathway"
+  );
+
+  /*
+  fs
+    .createReadStream(path.resolve(__dirname, "../input/one-of-each.gpml"))
+    .pipe(process.stdout);
+	//*/
+
+  return parser
+    .parse(
+      /*
+      `<?xml version="1.0" encoding="utf-8"?>
+			<gpml:Pathway xmlns:gpml="http://pathvisio.org/GPML/2013a" Name="sample pathway">
+				<gpml:Comment>hello there</gpml:Comment>
+			</gpml:Pathway>`,
+      //*/
+
+      /*
+      `<gpml:Pathway xmlns:gpml="http://pathvisio.org/GPML/2013a" Name="sample pathway">
+				<gpml:Comment>hello there</gpml:Comment>
+			</gpml:Pathway>`,
+      //*/
+
+      /*
+      `<Pathway xmlns:x="http://pathvisio.org/GPML/2013a" Name="sample pathway">
+				<Comment>hello there</Comment>
+			</Pathway>`,
+      //*/
+
+      //*
+      `<Pathway xmlns="http://pathvisio.org/GPML/2013a" Name="sample pathway">
+				<Comment>hello there</Comment>
+			</Pathway>`,
+      //*/
+
+      /*
+      `<?xml version="1.0" encoding="utf-8"?>
+      <Pathway Name="sample pathway">
+				<Comment>hello there</Comment>
+			</Pathway>`,
+      //*/
+
+      /*
+      `<Pathway Name="sample pathway">
+				<Comment>hello there</Comment>
+			</Pathway>`,
+      //*/
+
+      //fs.createReadStream(path.resolve(__dirname, "../input/simple.gpml")),
+      //fs.createReadStream(path.resolve(__dirname, "../input/reduce.gpml")),
+      //fs.createReadStream(path.resolve(__dirname, "../input/one-of-each.gpml")),
+      gpml.document
+    )
+    .then(doc => {
+      console.log("doc307");
+      console.log(doc);
+      expect(typeof doc).toBe("object");
+    });
+});
+
 ////test("attach to Pathway.DataNode[0].Comment[0]", done => {
 ////  var parser = new cxml.Parser();
 ////  parser.attach(
@@ -476,14 +540,14 @@ test("Attach handler w/ _before & _after. Parse stream.", () => {
 //////console.log(gpml.document.Pathway.DataNode[0].Comment[0].constructor);
 //////console.log(gpml.document.Pathway.Comment[0]);
 ////////*/
-//////
-//////// passes
-//////test("path awareness1", () => {
-//////  expect(gpml.document.Pathway.Comment).not.toBe(
-//////    gpml.document.Pathway.DataNode[0].Comment
-//////  );
-//////});
-//////
+
+//// passes
+//test("path awareness1", () => {
+//  expect(gpml.document.Pathway.Comment).not.toBe(
+//    gpml.document.Pathway.DataNode[0].Comment
+//  );
+//});
+
 ///////*
 //////// fails
 //////test("path awareness2", () => {

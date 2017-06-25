@@ -211,31 +211,18 @@ export class Parser {
     var realHandler = (handler as RuleClass).rule.handler;
     var realProto = realHandler.prototype as CustomHandler;
 
-    /*
-    console.log("handler");
-    console.log(handler);
-
-    console.log("realHandler");
-    console.log(realHandler);
-
-    console.log("proto");
-    console.log(proto);
-
-    console.log("realProto pre-assign");
-    console.log(realProto);
-		//*/
-
     for (var key of Object.keys(proto)) {
-      realProto[key] = proto[key];
+      if (["_before", "_after"].indexOf(key) === -1) {
+        realProto[key] = proto[key];
+      }
     }
-
     /*
-    console.log("realProto post-assign");
-    console.log(realProto);
+    realProto._before = function() {};
+    realProto._after = function() {};
 		//*/
 
     // TODO is this really the best way to do this?
-    const { _before, _after } = realProto;
+    const { _before, _after } = proto;
     if (xpath) {
       if (_before || _after) {
         const parsedXPathR = parse(xpath).reverse();
@@ -298,14 +285,7 @@ export class Parser {
     reject: (err: any) => void
   ) {
     const { bTree } = this;
-    //let _before: Function | undefined, _after: Function | undefined;
     var xml = sax.createStream(true, { position: true });
-    /*
-    console.log("output");
-    console.log(output);
-    console.log("output.constructor.prototype");
-    console.log(output.constructor.prototype);
-		//*/
     let rule = (output.constructor as RuleClass).rule;
     var xmlSpace = context.registerNamespace(
       "http://www.w3.org/XML/1998/namespace"
@@ -398,20 +378,6 @@ export class Parser {
 
       if (rule && !rule.isPlainPrimitive) {
         item = new rule.handler();
-        //item._before = undefined;
-        /*
-        delete item._before;
-        delete item._after;
-        delete item.prototype._before;
-        delete item.prototype._after;
-				//*/
-        /*
-        _before = item._before;
-        _after = item._after;
-        let proto = rule.handler.prototype;
-        delete proto._before;
-        delete proto._after;
-				//*/
 
         // Parse all attributes.
 
@@ -456,14 +422,10 @@ export class Parser {
           value: node.name
         });
 
-        console.log("item._before");
-        console.log(item._before);
-        if (item._before) {
-          const altState = { ...state, memberRef: child };
-          const thisBefore = getAttached(altState, bTree, "_before");
-          if (!!thisBefore) {
-            thisBefore.call(item);
-          }
+        const altState = { ...state, memberRef: child };
+        const thisBefore = getAttached(altState, bTree, "_before");
+        if (!!thisBefore) {
+          thisBefore.call(item);
         }
       }
 
@@ -493,7 +455,7 @@ export class Parser {
         else obj.content = content;
       }
 
-      if (obj && obj._after) {
+      if (obj) {
         const thisAfter = getAttached(state, bTree, "_after");
         if (!!thisAfter) {
           thisAfter.call(obj);
