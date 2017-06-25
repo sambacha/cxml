@@ -15,6 +15,8 @@ import { State } from "./State";
 import { defaultContext } from "../importer/JS";
 import { parse, ItemParsed } from "../topublish/xpath";
 
+import * as CircularJSON from "circular-json";
+
 // TODO is the type definition as correct as it can be?
 /*
 {
@@ -28,8 +30,8 @@ import { parse, ItemParsed } from "../topublish/xpath";
 	}(Map)
 }(Map)
 //*/
-export type AttachmentNames = "_after" | "_before";
-export type BTreeFinal = Map<AttachmentNames, Function>;
+export type AttachmentMethodNames = "_after" | "_before";
+export type BTreeFinal = Map<AttachmentMethodNames, Function>;
 export type BTreeIntermediate<T> = Map<ItemParsed, T | BTreeFinal>;
 export type BTree<T> = BTreeIntermediate<T> & BTreeFinal;
 
@@ -96,33 +98,43 @@ function findEntry(
   }
 }
 
-function getAttached<T>(
+function getAttachmentMethod<T>(
   state: State,
   bTree: BTree<T>,
-  attachment: AttachmentNames
+  attachmentMethodName: AttachmentMethodNames
 ): any {
   const name =
     !!state.memberRef &&
     !!state.memberRef.member &&
     state.memberRef.member.name;
 
+  console.log(`attachmentMethodName: ${attachmentMethodName}`);
+  console.log("state");
+  console.log(state);
+  console.log("bTree");
+  console.log(bTree);
   if (!name) {
     // NOTE: because of how the state is defined for _before vs. _after,
-    // we expect to not have name for _after but not for _before
-    if (attachment === "_before") {
+    // we expect to only have a name for _before, not for _after
+    /*
+    if (attachmentMethodName === "_before") {
       console.warn(
-        `Missing state.memberRef.member.name in getAttached for ${attachment}`
+        `Missing state.memberRef.member.name in getAttachmentMethod for ${attachmentMethodName}`
       );
       console.log("state");
       console.log(state);
       console.log("bTree");
       console.log(bTree);
     }
-    const attached = bTree.get(attachment);
-    if (attached) {
-      return attached;
+		//*/
+    const attachmentMethod = bTree.get(attachmentMethodName);
+    if (attachmentMethod) {
+      return attachmentMethod;
     } else {
-      throw new Error("Missing attached in getAttached");
+      //throw new Error()
+      console.error(
+        `getAttachmentMethod failed to find ${attachmentMethodName} function`
+      );
     }
   }
 
@@ -134,7 +146,7 @@ function getAttached<T>(
     // NOTE: we can end up here because there is no direct connection between
     // a Parser instance's attach and _parse methods. They actually just
     // connect via the rule.handler prototype. So it's possible for one
-    // attachment to set something on the rule.handler prototype, meaning it
+    // attachment method to set something on the rule.handler prototype, meaning it
     // appears to exist when we look at item._before or item._after in _parser,
     // but it doesn't actually exist for this xpath when we match the
     // state and bTree, level by level, up to the point where there should be
@@ -144,9 +156,9 @@ function getAttached<T>(
 
   const parent = state.parent;
   if (!!parent) {
-    return getAttached(parent, value, attachment);
+    return getAttachmentMethod(parent, value, attachmentMethodName);
   } else {
-    return value.get(attachment);
+    return value.get(attachmentMethodName);
   }
 }
 
@@ -418,14 +430,31 @@ export class Parser {
           value: node.name
         });
 
+        /*
+        if (state && state.rule) {
+          console.log("state.rule.childTbl");
+          console.log(state.rule.childTbl);
+        }
+        console.log("state435");
+        console.log(state);
+        //console.log(CircularJSON.stringify(state, null, "  "));
         const altState = { ...state, memberRef: child };
-        const thisBefore = getAttached(altState, bTree, "_before");
+        const thisBefore = getAttachmentMethod(altState, bTree, "_before");
         if (!!thisBefore) {
           thisBefore.call(item);
         }
+				//*/
       }
 
       state = new State(state, child, rule, item, namespaceTbl);
+      /*
+      console.log("state448");
+      console.log(state);
+			//*/
+      const thisBefore = getAttachmentMethod(state, bTree, "_before");
+      if (!!thisBefore) {
+        thisBefore.call(item);
+      }
     });
 
     xml.on("text", function(text: string) {
@@ -451,12 +480,14 @@ export class Parser {
         else obj.content = content;
       }
 
+      /*
       if (obj) {
-        const thisAfter = getAttached(state, bTree, "_after");
+        const thisAfter = getAttachmentMethod(state, bTree, "_after");
         if (!!thisAfter) {
           thisAfter.call(obj);
         }
       }
+			//*/
 
       state = state.parent;
 
