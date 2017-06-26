@@ -60,17 +60,65 @@ function findInMapIter<T>(
   }
 }
 
-const opHandlers = {
-  ">": function(item: HandlerInstance, left: string, right: any): boolean {
-    return item[left] > right;
-  },
-  "=": function(item: HandlerInstance, left: string, right: any): boolean {
+export type NonBinaryOpToRights = { [K in "=" | "!="]: string | number };
+export type BinaryOpToRights = {
+  [K in "&lt;" | "&lt;=" | "&gt;" | ">" | "&gt;=" | ">="]: number
+};
+export type OpToRights = NonBinaryOpToRights & BinaryOpToRights;
+export type OpHandlerInputGeneric<T, K extends keyof T> = {
+  left: string;
+  op: K;
+  right: T[K];
+};
+export type OpHandlerInput = OpHandlerInputGeneric<
+  OpToRights,
+  keyof OpToRights
+>;
+export type OpHandlersGeneric<T, K extends keyof T> = {
+  [K: string]: (item: HandlerInstance, left: string, right: T[K]) => boolean;
+};
+export type OpHandlers = OpHandlersGeneric<OpToRights, keyof OpToRights>;
+
+let opHandlers = {
+  // equal
+  "=": function(item, left, right) {
     return item[left] === right;
   },
-  "<": function(item: HandlerInstance, left: string, right: any): boolean {
+  // not equal
+  "!=": function(item, left, right) {
+    return item[left] !== right;
+  },
+  // less than
+  "&lt;": function(item, left, right) {
     return item[left] < right;
+  },
+  // less than or equal to
+  "&lt;=": function(item, left, right) {
+    return item[left] < right;
+  },
+  // greater than
+  "&gt;": function(item, left, right) {
+    return item[left] > right;
+  },
+  // greater than or equal to
+  "&gt;=": function(item, left, right) {
+    return item[left] > right;
   }
-};
+} as OpHandlers;
+
+opHandlers[">"] = opHandlers["&gt;"];
+opHandlers[">="] = opHandlers["&gt;="];
+
+/*
+opHandlers["&gt;"]({} as HandlerInstance, "CenterX", 2);
+opHandlers["&gt;"]({} as HandlerInstance, "CenterX", "b");
+opHandlers["&gt;"]({} as HandlerInstance, "a", "b");
+opHandlers[">"]({} as HandlerInstance, "CenterX", 2);
+opHandlers[">"]({} as HandlerInstance, "a", 2);
+opHandlers[">="]({} as HandlerInstance, 1, 2);
+opHandlers[">="]({} as HandlerInstance, "a", 2);
+opHandlers["="]({} as HandlerInstance, "a", 2);
+//*/
 
 function findEntry<T>(
   mapIter: Iterator<[ItemParsed, BTree<T>]>,
@@ -116,6 +164,15 @@ function getAttachmentMethod<T>(
   }
   const item = state.item || ({} as HandlerInstance);
 
+  /*{ left: string; op: keyof NonBinaryOpHandlers; right: string }
+            { left: number; op: keyof BinaryOpHandlers; right: number }
+            | {
+                left: string | number;
+                op: keyof NonBinaryOpHandlers;
+                right: string | number;
+              }
+							//*/
+
   const value = findInMapIter(bTree.entries(), function({
     axis,
     namespace,
@@ -127,13 +184,8 @@ function getAttachmentMethod<T>(
       memberNamespace === state.namespaceTbl[namespace || ""][0].name &&
       name === memberName &&
       (!predicates ||
-        predicates.reduce(function(acc, { left, op, right }) {
-          return (
-            acc &&
-            // TODO handle other ops other than just equals '='
-            //opHandlers[op](item, left, right)
-            opHandlers["="](item, left, right)
-          );
+        predicates.reduce(function(acc, { left, op, right }: OpHandlerInput) {
+          return acc && opHandlers[op](item, left, right);
         }, true))
     );
   });

@@ -307,6 +307,47 @@ test('Attach handler w/ _before & _after for /Pathway/DataNode[@GraphId="abc123"
     });
 });
 
+test("Attach handler w/ _before & _after for /Pathway/DataNode/Graphics[@CenterX>1]. Parse simple GPML string.", () => {
+  expect.assertions(3);
+
+  var parser = new cxml.Parser();
+
+  parser.attach(
+    class CustomHandler extends gpml.document.Pathway.DataNode[0].Graphics
+      .constructor {
+      _before() {
+        expect(this.CenterX).toBe(2);
+        expect(this.CenterY).toBe(4);
+      }
+      _after() {}
+    },
+    "/Pathway/DataNode/Graphics[@CenterX>1]"
+  );
+
+  return parser
+    .parse(
+      `<Pathway Name="sample pathway">
+				<Comment Source="my-pathway-comment-source">my-pathway-comment</Comment>
+				<DataNode GraphId="abc122" Type="GeneProduct">
+					<Graphics CenterX="1" CenterY="2"/>
+					<Comment Source="my-datanode1-comment-source">my-datanode1-comment</Comment>
+				</DataNode>
+				<DataNode GraphId="abc123" Type="Metabolite">
+					<Graphics CenterX="2" CenterY="4"/>
+					<Comment Source="my-datanode2-comment-source">my-datanode2-comment</Comment>
+				</DataNode>
+				<DataNode GraphId="abc124" Type="Pathway">
+					<Graphics CenterX="0.5" CenterY="1"/>
+					<Comment Source="my-datanode3-comment-source">my-datanode3-comment</Comment>
+				</DataNode>
+			</Pathway>`,
+      gpml.document
+    )
+    .then(doc => {
+      expect(typeof doc).toBe("object");
+    });
+});
+
 test("Attach handler w/ _before & _after for /Pathway/FakeElement. Parse simple GPML string.", () => {
   expect.assertions(1);
 

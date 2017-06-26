@@ -16,20 +16,25 @@ predicate
         = '[' expr ']'
 
 expr
-        = attribute_ref op (string_literal / number_literal)
+        = attribute_ref op (string_literal / number)
 
 attribute_ref
         = '@' name
 
 op
-        = '='
+        =  '=' / '!=' / '&lt;' / '&lt;=' / '&gt;' / '>' / '&gt;=' / '>='
 
 string_literal
         = '"' str:[^"]i+ '"' { return str.join(""); } /
           "'" str:[^']i+ "'" { return str.join(""); }
 
-number_literal
-        = str:[0-9]+ { return str.join(""); }
+number = float / integer
+
+float "float"
+    = left:[0-9]+ "." right:[0-9]+ { return parseFloat(left.join("") + "." +   right.join("")); }
+
+integer "integer"
+     = digits:[0-9]+ { return parseInt(digits.join(""), 10); }
 
 attribute
         = '@' str:[a-zA-Z0-9\*]+ { return str.join(""); }

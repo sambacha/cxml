@@ -9,10 +9,11 @@ var XPathParser = require("./XPathParser");
 import { assign, fromPairs, map, zip } from "lodash";
 
 export type NullOrString = null | string;
-export type PredicateRaw = null | [string[], string, string];
+export type Ops = "=" | "!=" | "&lt;" | "&lt;=" | "&gt;" | ">" | "&gt;=" | ">=";
+export type PredicateRaw = null | [string[], Ops, string];
 export type PredicateParsed = null | {
   left: string;
-  op: string;
+  op: Ops;
   right: string;
 };
 export interface ItemCommon {
