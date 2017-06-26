@@ -60,6 +60,18 @@ function findInMapIter<T>(
   }
 }
 
+const opHandlers = {
+  ">": function(item: HandlerInstance, left: string, right: any): boolean {
+    return item[left] > right;
+  },
+  "=": function(item: HandlerInstance, left: string, right: any): boolean {
+    return item[left] === right;
+  },
+  "<": function(item: HandlerInstance, left: string, right: any): boolean {
+    return item[left] < right;
+  }
+};
+
 function findEntry<T>(
   mapIter: Iterator<[ItemParsed, BTree<T>]>,
   compare: (x: ItemParsed) => boolean
@@ -84,12 +96,15 @@ function getAttachmentMethod<T>(
   bTree: BTree<T>,
   attachmentMethodName: AttachmentMethodNames
 ): Function {
-  const name =
-    !!state.memberRef &&
-    !!state.memberRef.member &&
-    state.memberRef.member.name;
+  const member =
+    (!!state.memberRef && state.memberRef.member) ||
+    ({} as typeof MemberRef.prototype.member);
+  // TODO should we use state.memberRef.safeName here?
+  const memberName = !!member && member.name;
+  const memberNamespace =
+    !!member && !!member.namespace && member.namespace.name;
 
-  if (!name) {
+  if (!memberName) {
     const attachmentMethod = bTree.get(attachmentMethodName);
     if (attachmentMethod) {
       return attachmentMethod;
@@ -99,9 +114,28 @@ function getAttachmentMethod<T>(
       );
     }
   }
+  const item = state.item || ({} as HandlerInstance);
 
-  const value = findInMapIter(bTree.entries(), function(k: ItemParsed) {
-    return k["name"] === name;
+  const value = findInMapIter(bTree.entries(), function({
+    axis,
+    namespace,
+    name,
+    predicates,
+    attribute
+  }: ItemParsed) {
+    return (
+      memberNamespace === state.namespaceTbl[namespace || ""][0].name &&
+      name === memberName &&
+      (!predicates ||
+        predicates.reduce(function(acc, { left, op, right }) {
+          return (
+            acc &&
+            // TODO handle other ops other than just equals '='
+            //opHandlers[op](item, left, right)
+            opHandlers["="](item, left, right)
+          );
+        }, true))
+    );
   });
 
   if (!value) {

@@ -246,7 +246,68 @@ test("Attach handler w/ _before & _after. Parse both string and stream.", () => 
     });
   });
 
-test("Attach handler w/ _before & _after for Pathway/FakeElement. Parse simple GPML string.", () => {
+//test("Attach handler w/ _before & _after for /Pathway/@*. Parse simple GPML string.", () => {
+//  expect.assertions(2);
+//
+//  var parser = new cxml.Parser();
+//
+//  parser.attach(
+//    class CustomHandler extends gpml.document.Pathway.constructor {
+//      _before() {
+//        expect(typeof this).toBe("object");
+//      }
+//      _after() {}
+//    },
+//    "/Pathway/@*"
+//  );
+//
+//  return parser
+//    .parse(
+//      '<Pathway Name="sample pathway"><Comment>hello there</Comment></Pathway>',
+//      gpml.document
+//    )
+//    .then(doc => {
+//      expect(typeof doc).toBe("object");
+//    });
+//});
+
+test('Attach handler w/ _before & _after for /Pathway/DataNode[@GraphId="abc123"]. Parse simple GPML string.', () => {
+  expect.assertions(2);
+
+  var parser = new cxml.Parser();
+
+  parser.attach(
+    class CustomHandler extends gpml.document.Pathway.DataNode[0].constructor {
+      _before() {
+        expect(this.Type).toBe("Metabolite");
+      }
+      _after() {}
+    },
+    '/Pathway/DataNode[@GraphId="abc123"]'
+  );
+
+  return parser
+    .parse(
+      `<Pathway Name="sample pathway">
+				<Comment Source="my-pathway-comment-source">my-pathway-comment</Comment>
+				<DataNode GraphId="abc122" Type="GeneProduct">
+					<Comment Source="my-datanode1-comment-source">my-datanode1-comment</Comment>
+				</DataNode>
+				<DataNode GraphId="abc123" Type="Metabolite">
+					<Comment Source="my-datanode2-comment-source">my-datanode2-comment</Comment>
+				</DataNode>
+				<DataNode GraphId="abc124" Type="Pathway">
+					<Comment Source="my-datanode3-comment-source">my-datanode3-comment</Comment>
+				</DataNode>
+			</Pathway>`,
+      gpml.document
+    )
+    .then(doc => {
+      expect(typeof doc).toBe("object");
+    });
+});
+
+test("Attach handler w/ _before & _after for /Pathway/FakeElement. Parse simple GPML string.", () => {
   expect.assertions(1);
 
   var parser = new cxml.Parser();
@@ -272,7 +333,7 @@ test("Attach handler w/ _before & _after for Pathway/FakeElement. Parse simple G
     });
 });
 
-test("Attach handler w/ _before & _after for Pathway/Comment. Parse simple GPML string.", () => {
+test("Attach handler w/ _before & _after for /Pathway/Comment. Parse simple GPML string.", () => {
   expect.assertions(3);
 
   var parser = new cxml.Parser();
@@ -298,7 +359,7 @@ test("Attach handler w/ _before & _after for Pathway/Comment. Parse simple GPML 
     });
 });
 
-test("Attach handler for Pathway/DataNode/Comment. Parse simple GPML string", () => {
+test("Attach handler for /Pathway/DataNode/Comment. Parse simple GPML string", () => {
   expect.assertions(6);
 
   var parser = new cxml.Parser();
@@ -336,7 +397,7 @@ test("Attach handler for Pathway/DataNode/Comment. Parse simple GPML string", ()
     });
 });
 
-test("Attach handler w/ _before & _after for Pathway. Parse one-of-each GPML stream.", () => {
+test("Attach handler w/ _before & _after for /Pathway. Parse one-of-each GPML stream.", () => {
   expect.assertions(3);
 
   var parser = new cxml.Parser();
@@ -363,7 +424,7 @@ test("Attach handler w/ _before & _after for Pathway. Parse one-of-each GPML str
     });
 });
 
-test("Attach handler w/ _before & _after for Pathway/DataNode/Comment. Parse one-of-each GPML stream.", () => {
+test("Attach handler w/ _before & _after for /Pathway/DataNode/Comment. Parse one-of-each GPML stream.", () => {
   expect.assertions(4);
 
   var parser = new cxml.Parser();
@@ -394,7 +455,7 @@ test("Attach handler w/ _before & _after for Pathway/DataNode/Comment. Parse one
     });
 });
 
-test("Attach handlers for both Pathway/Comment & Pathway/DataNode/Comment. Parse.", () => {
+test("Attach handlers for both /Pathway/Comment & /Pathway/DataNode/Comment. Parse.", () => {
   expect.assertions(6);
 
   var parser = new cxml.Parser();
@@ -438,7 +499,7 @@ test("Attach handlers for both Pathway/Comment & Pathway/DataNode/Comment. Parse
     });
 });
 
-test("Attach handlers for both Pathway/Comment & Pathway/DataNode. Parse.", () => {
+test("Attach handlers for both /Pathway/Comment & /Pathway/DataNode. Parse.", () => {
   expect.assertions(16);
 
   var parser = new cxml.Parser();
