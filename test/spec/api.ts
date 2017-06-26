@@ -75,7 +75,7 @@ test("Attach handler w/ _before & _after. Parse stream.", () => {
   );
 
   const result = parser.parse(
-    fs.createReadStream(path.resolve(__dirname, "../xml/dir-example.xml")),
+    fs.createReadStream(path.resolve(__dirname, "../input/dir-example.xml")),
     example.document
   );
 
@@ -124,7 +124,7 @@ test("Attach handler w/ _before & _after. Parse both string and stream.", () => 
   );
 
   const resultFromStream = parser.parse(
-    fs.createReadStream(path.resolve(__dirname, "../xml/dir-example.xml")),
+    fs.createReadStream(path.resolve(__dirname, "../input/dir-example.xml")),
     example.document
   );
 
@@ -163,37 +163,90 @@ test("Attach handler w/ _before & _after. Parse both string and stream.", () => 
   });
 });
 
-////test("attach to and parse broken Pathway from string", () => {
-////  expect.assertions(3);
-////
-////  var parser = new cxml.Parser();
-////  parser.attach(
-////    class CustomHandler extends gpml.document.Pathway.constructor {
-////      _before() {
-////        console.log("this _before");
-////        console.log(this);
-////        expect(typeof this).toBe("object");
-////      }
-////
-////      _after() {
-////        console.log("this _after");
-////        console.log(this);
-////        expect(typeof this).toBe("object");
-////      }
-////    },
-////    "/Pathway"
-////  );
-////  return parser
-////    .parse(
-////      '<DataNode Name="sample pathway"><Comment>hello there</Comment></DataNode>',
-////      gpml.document
-////    )
-////    .then(doc => {
-////      expect(typeof doc).toBe("object");
-////    });
-////});
+//test("attach to and parse broken Pathway from string", () => {
+//  expect.assertions(3);
+//
+//  var parser = new cxml.Parser();
+//  parser.attach(
+//    class CustomHandler extends gpml.document.Pathway.constructor {
+//      _before() {
+//        console.log("this _before");
+//        console.log(this);
+//        expect(typeof this).toBe("object");
+//      }
+//
+//      _after() {
+//        console.log("this _after");
+//        console.log(this);
+//        expect(typeof this).toBe("object");
+//      }
+//    },
+//    "/Pathway"
+//  );
+//  return parser
+//    .parse(
+//      '<DataNode Name="sample pathway"><Comment>hello there</Comment></DataNode>',
+//      gpml.document
+//    )
+//    .then(doc => {
+//      expect(typeof doc).toBe("object");
+//    });
+//});
 
-test("Attach handler w/ _before & _after. Parse Comment from string.", () => {
+[
+  `<gpml:Pathway xmlns:gpml="http://pathvisio.org/GPML/2013a" Name="sample pathway">
+		<gpml:Comment>hello there</gpml:Comment>
+	</gpml:Pathway>`,
+
+  `<Pathway xmlns:x="http://pathvisio.org/GPML/2013a" Name="sample pathway">
+		<Comment>hello there</Comment>
+	</Pathway>`,
+
+  `<Pathway xmlns="http://pathvisio.org/GPML/2013a" Name="sample pathway">
+		<Comment>hello there</Comment>
+	</Pathway>`,
+
+  `<Pathway Name="sample pathway">
+		<Comment>hello there</Comment>
+	</Pathway>`
+]
+  .reduce(function(acc, pathway) {
+    acc.push(pathway);
+    acc.push('<?xml version="1.0" encoding="utf-8"?>\n' + pathway);
+    return acc;
+  }, [])
+  .concat([
+    fs.createReadStream(path.resolve(__dirname, "../input/simple.gpml"))
+  ])
+  .forEach(function(input, i) {
+    test(`attach to and parse simple Pathway from input index ${i}`, () => {
+      expect.assertions(6);
+
+      var parser = new cxml.Parser();
+      parser.attach(
+        class CustomHandler extends gpml.document.Pathway.constructor {
+          _before() {
+            expect(this.Name).toBe("sample pathway");
+            expect(this.Comment[0]._exists).toBe(false);
+          }
+
+          _after() {
+            expect(this.Name).toBe("sample pathway");
+            expect(this.Comment[0].content).toBe("hello there");
+          }
+        },
+        "/Pathway"
+      );
+
+      return parser.parse(input, gpml.document).then(doc => {
+        const pathway = doc.Pathway;
+        expect(pathway.Name).toBe("sample pathway");
+        expect(pathway.Comment[0].content).toBe("hello there");
+      });
+    });
+  });
+
+test("Attach handler w/ _before & _after. Parse Pathway/Comment simple GPML string.", () => {
   expect.assertions(3);
 
   var parser = new cxml.Parser();
@@ -219,7 +272,7 @@ test("Attach handler w/ _before & _after. Parse Comment from string.", () => {
     });
 });
 
-test("attach to DataNode Comment and parse GPML", () => {
+test("attach to Pathway/DataNode/Comment and parse simple GPML string", () => {
   expect.assertions(6);
 
   var parser = new cxml.Parser();
@@ -257,263 +310,147 @@ test("attach to DataNode Comment and parse GPML", () => {
     });
 });
 
-//[
-//  `<gpml:Pathway xmlns:gpml="http://pathvisio.org/GPML/2013a" Name="sample pathway">
-//		<gpml:Comment>hello there</gpml:Comment>
-//	</gpml:Pathway>`,
-//
-//  `<Pathway xmlns:x="http://pathvisio.org/GPML/2013a" Name="sample pathway">
-//		<Comment>hello there</Comment>
-//	</Pathway>`,
-//
-//  `<Pathway xmlns="http://pathvisio.org/GPML/2013a" Name="sample pathway">
-//		<Comment>hello there</Comment>
-//	</Pathway>`,
-//
-//  `<Pathway Name="sample pathway">
-//		<Comment>hello there</Comment>
-//	</Pathway>`
-//]
-//  .reduce(function(acc, pathway) {
-//    acc.push(pathway);
-//    acc.push('<?xml version="1.0" encoding="utf-8"?>\n' + pathway);
-//    return acc;
-//  }, [])
-//  .concat([
-//    fs.createReadStream(path.resolve(__dirname, "../input/simple.gpml"))
-//  ])
-//  .forEach(function(input, i) {
-//    test(`attach to and parse simple Pathway from input index ${i}`, () => {
-//      expect.assertions(6);
-//
-//      var parser = new cxml.Parser();
-//      parser.attach(
-//        class CustomHandler extends gpml.document.Pathway.constructor {
-//          _before() {
-//            expect(this.Name).toBe("sample pathway");
-//            expect(this.Comment[0]._exists).toBe(false);
-//          }
-//
-//          _after() {
-//            expect(this.Name).toBe("sample pathway");
-//            expect(this.Comment[0].content).toBe("hello there");
-//          }
-//        },
-//        "/Pathway"
-//      );
-//
-//      return parser.parse(input, gpml.document).then(doc => {
-//        const pathway = doc.Pathway;
-//        expect(pathway.Name).toBe("sample pathway");
-//        expect(pathway.Comment[0].content).toBe("hello there");
-//      });
-//    });
-//  });
-//
-//test("attach to and parse Pathway from stream", () => {
-//  expect.assertions(3);
-//
-//  var parser = new cxml.Parser();
-//  parser.attach(
-//    class CustomHandler extends gpml.document.Pathway.constructor {
-//      _before() {
-//        expect(typeof this).toBe("object");
-//      }
-//
-//      _after() {
-//        expect(typeof this).toBe("object");
-//      }
-//    },
-//    "/Pathway"
-//  );
-//
-//  return parser
-//    .parse(
-//      fs.createReadStream(path.resolve(__dirname, "../input/one-of-each.gpml")),
-//      gpml.document
-//    )
-//    .then(doc => {
-//      expect(typeof doc).toBe("object");
-//    });
-//});
+test("Attach handler w/ _before & _after. Parse Pathway from one-of-each GPML stream.", () => {
+  expect.assertions(3);
 
-////test("attach to Pathway.DataNode[0].Comment[0]", done => {
-////  var parser = new cxml.Parser();
-////  parser.attach(
-////    class CustomHandler extends gpml.document.Pathway.DataNode[0].Comment[0]
-////      .constructor {
-////      /*
-////      _before() {
-////        console.log("Before:");
-////        console.log(JSON.stringify(this));
-////        expect(typeof this).toBe("object");
-////      }
-////			//*/
-////
-////      _after() {
-////        console.log("After:");
-////        console.log(JSON.stringify(this));
-////        expect(this.content).toBe("DataNode: anotherComment");
-////      }
-////    }
-////  );
-////  var result = parser.parse(
-////    fs.createReadStream(path.resolve(__dirname, "../input/one-of-each.gpml")),
-////    gpml.document
-////  );
-////  result.then(doc => {
-////    console.log("\n=== 123 ===\n");
-////    console.log(JSON.stringify(doc, null, 2));
-////    expect(typeof doc).toBe("object");
-////    done();
-////  });
-////});
-////
-////////***************************
-//////var parser1 = new cxml.Parser();
-//////var result1 = parser1.parse(
-//////  fs.createReadStream(path.resolve(__dirname, "../input/one-of-each.gpml")),
-//////  gpml.document
-//////);
-//////
-//////parser1.attach(
-//////  class CustomHandler extends gpml.document.Pathway.constructor {
-//////    _before() {
-//////      console.log("this _before");
-//////      console.log(this);
-//////    }
-//////
-//////    _after() {
-//////      console.log("this _after");
-//////      console.log(this);
-//////    }
-//////  }
-//////);
-//////
-//////result1.then(doc => {
-//////  console.log("\n=== 123 ===\n");
-//////  console.log(JSON.stringify(doc, null, 2));
-//////});
-////////***************************
-//////
-//////var parser = new cxml.Parser();
-//////
-//////var result = parser.parse(
-//////  fs.createReadStream(path.resolve(__dirname, "../input/one-of-each.gpml")),
-//////  gpml.document
-//////);
-//////
-//////test("attach to Pathway", done => {
-//////  parser.attach(
-//////    class CustomHandler extends gpml.document.Pathway.constructor {
-//////      _before() {
-//////        console.log("this _before");
-//////        console.log(this);
-//////      }
-//////
-//////      _after() {
-//////        console.log("this _after");
-//////        console.log(this);
-//////        done();
-//////      }
-//////    }
-//////  );
-//////});
-//////
-//////parser.attach(
-//////  class CustomHandler extends gpml.document.Pathway.Comment[0].constructor {
-//////    _before() {
-//////      //expect(typeof this).toBe("object");
-//////    }
-//////
-//////    _after() {
-//////      console.log("this");
-//////      console.log(this);
-//////      /*
-//////			if (iAfter < 1) {
-//////				expect(this.content).toBe("Document: mycommentA");
-//////				done();
-//////			}
-//////			iAfter += 1;
-//////			//*/
-//////    }
-//////  }
-//////);
-//////
-////////test("attach to Pathway.Comment[0]", done => {
-////////  let iAfter = 0;
-////////  expect.assertions(1);
-////////  parser.attach(
-////////    class CustomHandler extends gpml.document.Pathway.Comment[0]
-////////      .constructor {
-////////      _before() {
-////////        //expect(typeof this).toBe("object");
-////////      }
-////////
-////////      _after() {
-////////        console.log("this");
-////////        console.log(this);
-////////        expect(this.content).toBe("Document: mycommentA");
-////////        done();
-////////        /*
-////////        if (iAfter < 1) {
-////////          expect(this.content).toBe("Document: mycommentA");
-////////          done();
-////////        }
-////////        iAfter += 1;
-////////				//*/
-////////      }
-////////    }
-////////  );
-////////});
-//////
-////////test("attach to Pathway.DataNode[0].Comment[0]", done => {
-////////  let called = false;
-////////  parser.attach(
-////////    class CustomHandler extends gpml.document.Pathway.DataNode[0].Comment[0]
-////////      .constructor {
-////////      /*
-////////      _before() {
-////////        console.log("Before:");
-////////        console.log(JSON.stringify(this));
-////////        expect(typeof this).toBe("object");
-////////      }
-////////			//*/
-////////
-////////      _after() {
-////////        console.log("After:");
-////////        console.log(JSON.stringify(this));
-////////        if (!called) {
-////////          called = true;
-////////          expect(this.content).toBe("DataNode: anotherComment");
-////////          done();
-////////        }
-////////      }
-////////    }
-////////  );
-////////});
-//////
-//////test("full response", () => {
-//////  expect.assertions(1);
-//////  return result.then(doc => {
-//////    //console.log("\n=== 123 ===\n");
-//////    //console.log(JSON.stringify(doc, null, 2));
-//////    expect(typeof doc).toBe("object");
-//////  });
-//////});
-//////
-///////*
-//////console.log("gpml.document.Pathway.Comment[0].constructor.toString()");
-//////console.log(gpml.document.Pathway.Comment[0].constructor.toString());
-//////console.log(gpml.document.Pathway.Comment[0].constructor);
-//////console.log(gpml.document.Pathway.Comment[0]);
-//////
-//////console.log(
-//////  "gpml.document.Pathway.DataNode[0].Comment[0].constructor.toString()"
-//////);
-//////console.log(
-//////  gpml.document.Pathway.DataNode[0].Comment[0].constructor.toString()
-//////);
-//////console.log(gpml.document.Pathway.DataNode[0].Comment[0].constructor);
-//////console.log(gpml.document.Pathway.Comment[0]);
-////////*/
+  var parser = new cxml.Parser();
+  parser.attach(
+    class CustomHandler extends gpml.document.Pathway.constructor {
+      _before() {
+        expect(typeof this).toBe("object");
+      }
+
+      _after() {
+        expect(typeof this).toBe("object");
+      }
+    },
+    "/Pathway"
+  );
+
+  return parser
+    .parse(
+      fs.createReadStream(path.resolve(__dirname, "../input/one-of-each.gpml")),
+      gpml.document
+    )
+    .then(doc => {
+      expect(typeof doc).toBe("object");
+    });
+});
+
+test("Attach handler w/ _before & _after. Parse Pathway/DataNode/Comment from one-of-each GPML stream.", () => {
+  expect.assertions(4);
+
+  var parser = new cxml.Parser();
+
+  parser.attach(
+    class CustomHandler extends gpml.document.Pathway.DataNode[0].Comment[0]
+      .constructor {
+      _before() {
+        expect(typeof this).toBe("object");
+      }
+
+      _after() {
+        expect(this.content).toBe("DataNode comment");
+      }
+    },
+    "/Pathway/DataNode/Comment"
+  );
+
+  return parser
+    .parse(
+      fs.createReadStream(path.resolve(__dirname, "../input/one-of-each.gpml")),
+      gpml.document
+    )
+    .then(doc => {
+      const comment = doc.Pathway.DataNode[1].Comment[0];
+      expect(comment.content).toBe("DataNode comment");
+      expect(typeof doc.Pathway.Graphics).toBe("object");
+    });
+});
+
+test("Attach mutiple handlers. Parse both Pathway/Comment & Pathway/DataNode/Comment.", () => {
+  expect.assertions(6);
+
+  var parser = new cxml.Parser();
+
+  parser.attach(
+    class CustomHandler extends gpml.document.Pathway.Comment[0].constructor {
+      _before() {
+        expect(typeof this).toBe("object");
+      }
+
+      _after() {
+        expect(this.content).toBe("pathway wide comment");
+      }
+    },
+    "/Pathway/Comment"
+  );
+
+  parser.attach(
+    class CustomHandler extends gpml.document.Pathway.DataNode[0].Comment[0]
+      .constructor {
+      _before() {
+        expect(typeof this).toBe("object");
+      }
+
+      _after() {
+        expect(this.content).toBe("DataNode comment");
+      }
+    },
+    "/Pathway/DataNode/Comment"
+  );
+
+  return parser
+    .parse(
+      fs.createReadStream(path.resolve(__dirname, "../input/one-of-each.gpml")),
+      gpml.document
+    )
+    .then(doc => {
+      const comment = doc.Pathway.DataNode[1].Comment[0];
+      expect(comment.content).toBe("DataNode comment");
+      expect(typeof doc.Pathway.Graphics).toBe("object");
+    });
+});
+
+test("Attach mutiple handlers. Parse both Pathway/Comment & Pathway/DataNode.", () => {
+  expect.assertions(16);
+
+  var parser = new cxml.Parser();
+
+  parser.attach(
+    class CustomHandler extends gpml.document.Pathway.Comment[0].constructor {
+      _before() {
+        expect(typeof this).toBe("object");
+      }
+
+      _after() {
+        expect(this.content).toBe("pathway wide comment");
+      }
+    },
+    "/Pathway/Comment"
+  );
+
+  parser.attach(
+    class CustomHandler extends gpml.document.Pathway.DataNode[0].constructor {
+      _before() {
+        expect(typeof this).toBe("object");
+      }
+
+      _after() {
+        expect(typeof this).toBe("object");
+      }
+    },
+    "/Pathway/DataNode"
+  );
+
+  return parser
+    .parse(
+      fs.createReadStream(path.resolve(__dirname, "../input/one-of-each.gpml")),
+      gpml.document
+    )
+    .then(doc => {
+      const comment = doc.Pathway.DataNode[1].Comment[0];
+      expect(comment.content).toBe("DataNode comment");
+      expect(typeof doc.Pathway.Graphics).toBe("object");
+    });
+});

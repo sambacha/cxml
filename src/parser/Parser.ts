@@ -15,7 +15,10 @@ import { State } from "./State";
 import { defaultContext } from "../importer/JS";
 import { parse, ItemParsed } from "../topublish/xpath";
 
-// TODO is the type definition as correct as it can be?
+export type ItemParsedKey = keyof ItemParsed;
+export type ItemParsedValue = ItemParsed[ItemParsedKey];
+
+// TODO can this type definition be improved?
 /*
 {
 	xpathEl(obj): {
@@ -37,62 +40,42 @@ export interface CxmlDate extends Date {
   cxmlTimezoneOffset: number;
 }
 
-function getPath(state: State, acc: string[] = []): string[] {
-  const name =
-    state.memberRef && state.memberRef.member && state.memberRef.member.name;
-  acc.unshift(name);
-  const parent = state.parent;
-  if (!!parent) {
-    return getPath(parent, acc);
-  } else {
-    return acc;
-  }
-}
-
 function findInMapIter<T>(
+  // TODO why can't I mark this as BTree<T> instead of any?
   mapIter: Iterator<[ItemParsed, any]>,
   compare: (x: ItemParsed) => boolean
 ): BTree<T> {
-  const next = mapIter.next();
-  const { value, done } = next;
+  const { value, done } = mapIter.next();
   if (!value) {
     return;
   }
-  const [k, v] = value;
-  if (!compare(k)) {
+  const [itemParsed, childMap] = value;
+  if (!compare(itemParsed)) {
     if (done) {
       return;
     }
     return findInMapIter<T>(mapIter, compare);
   } else {
-    return v;
+    return childMap;
   }
 }
 
-/*
 function findEntry<T>(
-  mapIter: Iterator<[ItemParsed, any]>,
+  mapIter: Iterator<[ItemParsed, BTree<T>]>,
   compare: (x: ItemParsed) => boolean
-): [ItemParsed, any] {}
-//*/
-
-function findEntry(
-  mapIter: any,
-  compare: (x: any) => boolean
-): [Map<string, any>, any] {
-  const entry = mapIter.next();
-  const { value, done } = entry;
+): [BTree<T>, ItemParsed] {
+  const { value, done } = mapIter.next();
   if (!value) {
     return;
   }
-  const [k, v] = value;
-  if (!compare(k)) {
+  const [itemParsed, childMap] = value;
+  if (!compare(itemParsed)) {
     if (done) {
       return;
     }
     return findEntry(mapIter, compare);
   } else {
-    return [k, v];
+    return [childMap, itemParsed];
   }
 }
 
@@ -100,7 +83,7 @@ function getAttachmentMethod<T>(
   state: State,
   bTree: BTree<T>,
   attachmentMethodName: AttachmentMethodNames
-): any {
+): Function {
   const name =
     !!state.memberRef &&
     !!state.memberRef.member &&
@@ -141,22 +124,22 @@ function getAttachmentMethod<T>(
   }
 }
 
-var converterTbl: { [type: string]: (item: string) => any } = {
+const converterTbl: { [type: string]: (item: string) => any } = {
   Date: (item: string) => {
-    var dateParts = item.match(
+    const dateParts = item.match(
       /([0-9]+)-([0-9]+)-([0-9]+)(?:T([0-9]+):([0-9]+):([0-9]+)(\.[0-9]+)?)?(?:Z|([+-][0-9]+):([0-9]+))?/
     );
 
     if (!dateParts) return null;
 
-    var offsetMinutes = +(dateParts[9] || "0");
-    var offset = +(dateParts[8] || "0") * 60;
+    let offsetMinutes = +(dateParts[9] || "0");
+    let offset = +(dateParts[8] || "0") * 60;
 
     if (offset < 0) offsetMinutes = -offsetMinutes;
 
     offset += offsetMinutes;
 
-    var date = new Date(
+    const date = new Date(
       +dateParts[1],
       +dateParts[2] - 1,
       +dateParts[3],
@@ -177,7 +160,7 @@ var converterTbl: { [type: string]: (item: string) => any } = {
 };
 
 function convertPrimitive(text: string, type: Rule) {
-  var converter = converterTbl[type.primitiveType];
+  const converter = converterTbl[type.primitiveType];
 
   if (converter) {
     if (type.isList) {
@@ -190,19 +173,21 @@ function convertPrimitive(text: string, type: Rule) {
   return null;
 }
 
-export class Parser {
-  bTree: any = new Map();
+export class Parser<T> {
+  // TODO why do I need to use BTree<any> here?
+  // I should be able to use BTree<T>
+  bTree: BTree<any> & BTree<T> = new Map();
   attach<CustomHandler extends HandlerInstance>(
     handler: {
       new (): CustomHandler;
     },
     xpath: string
   ) {
-    var proto = handler.prototype as CustomHandler;
-    var realHandler = (handler as RuleClass).rule.handler;
-    var realProto = realHandler.prototype as CustomHandler;
+    const proto = handler.prototype as CustomHandler;
+    const realHandler = (handler as RuleClass).rule.handler;
+    const realProto = realHandler.prototype as CustomHandler;
 
-    for (var key of Object.keys(proto)) {
+    for (const key of Object.keys(proto)) {
       if (["_before", "_after"].indexOf(key) === -1) {
         realProto[key] = proto[key];
       }
@@ -213,25 +198,27 @@ export class Parser {
     if (xpath) {
       if (_before || _after) {
         const parsedXPathR = parse(xpath).reverse();
-        const finalItem = parsedXPathR.reduce(function(parentNode, xpathEl) {
+        const finalItem = parsedXPathR.reduce(function(
+          parentMap,
+          xpathEl: ItemParsed
+        ) {
           const xpathElPairs = toPairs(xpathEl);
-          let [currentNode, currentValue]: [
-            Map<string, any>,
+          let [currentMap, currentItemParsed]: [
+            BTree<T>,
             ItemParsed
-          ] = findEntry(parentNode.entries(), function(candidateValue) {
-            console.log("candidateValue");
-            console.log(candidateValue);
+          ] = findEntry(parentMap.entries(), function(candidateItemParsed) {
             return xpathElPairs.reduce(function(
               isRunningMatch: boolean,
-              [xpathElKey, xpathElValue]
+              [xpathElKey, xpathElValue]: [ItemParsedKey, ItemParsedValue]
             ) {
               return (
-                isRunningMatch && candidateValue[xpathElKey] === xpathElValue
+                isRunningMatch &&
+                candidateItemParsed[xpathElKey] === xpathElValue
               );
             }, true);
           }) || [new Map(), xpathEl];
-          parentNode.set(currentValue, currentNode);
-          return currentNode;
+          parentMap.set(currentItemParsed, currentMap);
+          return currentMap;
         }, this.bTree);
 
         if (_before) {
@@ -253,7 +240,7 @@ export class Parser {
   ) {
     return new Promise<
       Output
-    >((resolve: (item: Output) => void, reject: (err: any) => void) =>
+    >((resolve: (item: Output) => void, reject: (err: Error) => void) =>
       this._parse<Output>(
         stream,
         output,
@@ -269,12 +256,12 @@ export class Parser {
     output: Output,
     context: Context,
     resolve: (item: Output) => void,
-    reject: (err: any) => void
+    reject: (err: Error) => void
   ) {
     const { bTree } = this;
-    var xml = sax.createStream(true, { position: true });
+    const xml = sax.createStream(true, { position: true });
     let rule = (output.constructor as RuleClass).rule;
-    var xmlSpace = context.registerNamespace(
+    const xmlSpace = context.registerNamespace(
       "http://www.w3.org/XML/1998/namespace"
     );
 
@@ -283,8 +270,8 @@ export class Parser {
       xml: [xmlSpace, xmlSpace.getPrefix()]
     };
 
-    var state = new State(null, null, rule, new rule.handler(), namespaceTbl);
-    var rootState = state;
+    let state = new State(null, null, rule, new rule.handler(), namespaceTbl);
+    const rootState = state;
     let parentItem: HandlerInstance;
 
     /** Add a new xmlns prefix recognized inside current tag and its children. */
@@ -305,20 +292,20 @@ export class Parser {
     }
 
     xml.on("opentag", (node: sax.Tag) => {
-      var attrTbl = node.attributes;
-      var attr: string;
-      var nodePrefix = "";
-      var name = node.name;
-      var splitter = name.indexOf(":");
-      var item: HandlerInstance = null;
+      const attrTbl = node.attributes;
+      let attr: string;
+      let nodePrefix = "";
+      let name = node.name;
+      let splitter = name.indexOf(":");
+      let item: HandlerInstance = null;
 
       namespaceTbl = state.namespaceTbl;
 
       // Read xmlns namespace prefix definitions before parsing node name.
 
-      for (var key of Object.keys(attrTbl)) {
+      for (const key of Object.keys(attrTbl)) {
         if (key.substr(0, 5) == "xmlns") {
-          var nsParts = key.match(/^xmlns(:(.+))?$/);
+          const nsParts = key.match(/^xmlns(:(.+))?$/);
 
           if (nsParts) {
             addNamespace(
@@ -338,10 +325,10 @@ export class Parser {
 
       // Add internal surrogate key namespace prefix to node name.
 
-      var nodeNamespace = namespaceTbl[nodePrefix];
+      const nodeNamespace = namespaceTbl[nodePrefix];
       name = nodeNamespace[1] + name;
 
-      var child: MemberRef;
+      let child: MemberRef;
       let rule: Rule;
 
       if (state.rule) {
@@ -368,14 +355,14 @@ export class Parser {
 
         // Parse all attributes.
 
-        for (var key of Object.keys(attrTbl)) {
+        for (const key of Object.keys(attrTbl)) {
           splitter = key.indexOf(":");
 
           if (splitter >= 0) {
-            var attrPrefix = key.substr(0, splitter);
+            const attrPrefix = key.substr(0, splitter);
             if (attrPrefix == "xmlns") continue;
 
-            var attrNamespace = namespaceTbl[attrPrefix];
+            const attrNamespace = namespaceTbl[attrPrefix];
 
             if (attrNamespace) {
               attr = attrNamespace[1] + key.substr(splitter + 1);
@@ -387,7 +374,7 @@ export class Parser {
             attr = nodeNamespace[1] + key;
           }
 
-          var ref = rule.attributeTbl[attr];
+          const ref = rule.attributeTbl[attr];
 
           if (ref && ref.member.rule.isPlainPrimitive) {
             item[ref.safeName] = convertPrimitive(
@@ -411,8 +398,11 @@ export class Parser {
       }
 
       state = new State(state, child, rule, item, namespaceTbl);
-      // TODO why did the previous version of this lib only call item._before
-      // from inside the if (rule && !rule.isPlainPrimitive) block above?
+      // TODO why did the previous version of this lib check
+      // (rule && !rule.isPlainPrimitive) before running _before?
+      // I'm keeping the check for now, until I figure out why.
+      // TODO also, why did it run '_before' prior to re-setting state
+      // (re-setting in the line above)?
       if (rule && !rule.isPlainPrimitive) {
         const thisBefore = getAttachmentMethod(state, bTree, "_before");
         if (!!thisBefore) {
@@ -429,29 +419,31 @@ export class Parser {
     });
 
     xml.on("closetag", function(name: string) {
-      var member = state.memberRef;
-      var obj = state.item;
-      var item: any = obj;
-      var text: string;
+      let member = state.memberRef;
+      const obj = state.item;
+      let item: HandlerInstance = obj;
+      let text: string;
 
-      if (state.rule && state.rule.isPrimitive)
+      if (state.rule && state.rule.isPrimitive) {
         text = (state.textList || []).join("").trim();
-
-      if (text) {
-        var content = convertPrimitive(text, state.rule);
-
-        if (state.rule.isPlainPrimitive) item = content;
-        else obj.content = content;
       }
 
-      //*
+      if (text) {
+        const content = convertPrimitive(text, state.rule);
+
+        if (state.rule.isPlainPrimitive) {
+          item = content;
+        } else {
+          obj.content = content;
+        }
+      }
+
       if (obj) {
         const thisAfter = getAttachmentMethod(state, bTree, "_after");
         if (!!thisAfter) {
           thisAfter.call(obj);
         }
       }
-      //*/
 
       state = state.parent;
 
@@ -464,23 +456,26 @@ export class Parser {
       }
 
       if (item) {
-        var parent = state.item;
+        let parent = state.item;
 
         if (parent) {
           if (member.max > 1) {
-            if (!parent.hasOwnProperty(member.safeName))
+            if (!parent.hasOwnProperty(member.safeName)) {
               parent[member.safeName] = [];
+            }
             parent[member.safeName].push(item);
-          } else parent[member.safeName] = item;
+          } else {
+            parent[member.safeName] = item;
+          }
         }
       }
     });
 
     xml.on("end", function() {
-      resolve((rootState.item as any) as Output);
+      resolve((rootState.item as HandlerInstance) as Output);
     });
 
-    xml.on("error", function(err: any) {
+    xml.on("error", function(err: Error) {
       console.error(err);
     });
 

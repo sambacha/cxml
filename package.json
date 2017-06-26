@@ -7,9 +7,8 @@
   "scripts": {
     "build": "npm-run-all build:*",
     "build:clean": "mkdir -p lib && rm -rf lib/",
-    "build:xpath": "mkdir -p lib/topublish && pegjs -o lib/topublish/XPathParser.js src/topublish/XPathParser.pegjs",
-    "build:copy": "mkdir -p lib/topublish && cp src/topublish/XPathParser*.js lib/topublish/",
-    "build:compile": "tsc -p tsconfig.json",
+    "build:pegjs": "mkdir -p lib/topublish && pegjs -o lib/topublish/XPathParser.js src/topublish/XPathParser.pegjs",
+    "build:typescript": "tsc -p tsconfig.json",
     "test": "npm-run-all test:*",
     "test:build": "npm-run-all test:build:*",
     "test:build:clean": "cd test && mkdir -p cache && rm -rf cache && mkdir -p xmlns && rm -rf xmlns && cd ..",
