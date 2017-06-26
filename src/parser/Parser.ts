@@ -15,8 +15,6 @@ import { State } from "./State";
 import { defaultContext } from "../importer/JS";
 import { parse, ItemParsed } from "../topublish/xpath";
 
-import * as CircularJSON from "circular-json";
-
 // TODO is the type definition as correct as it can be?
 /*
 {
@@ -108,31 +106,12 @@ function getAttachmentMethod<T>(
     !!state.memberRef.member &&
     state.memberRef.member.name;
 
-  console.log(`attachmentMethodName: ${attachmentMethodName}`);
-  console.log("state");
-  console.log(state);
-  console.log("bTree");
-  console.log(bTree);
   if (!name) {
-    // NOTE: because of how the state is defined for _before vs. _after,
-    // we expect to only have a name for _before, not for _after
-    /*
-    if (attachmentMethodName === "_before") {
-      console.warn(
-        `Missing state.memberRef.member.name in getAttachmentMethod for ${attachmentMethodName}`
-      );
-      console.log("state");
-      console.log(state);
-      console.log("bTree");
-      console.log(bTree);
-    }
-		//*/
     const attachmentMethod = bTree.get(attachmentMethodName);
     if (attachmentMethod) {
       return attachmentMethod;
     } else {
-      //throw new Error()
-      console.error(
+      throw new Error(
         `getAttachmentMethod failed to find ${attachmentMethodName} function`
       );
     }
@@ -429,31 +408,16 @@ export class Parser {
           enumerable: false,
           value: node.name
         });
-
-        /*
-        if (state && state.rule) {
-          console.log("state.rule.childTbl");
-          console.log(state.rule.childTbl);
-        }
-        console.log("state435");
-        console.log(state);
-        //console.log(CircularJSON.stringify(state, null, "  "));
-        const altState = { ...state, memberRef: child };
-        const thisBefore = getAttachmentMethod(altState, bTree, "_before");
-        if (!!thisBefore) {
-          thisBefore.call(item);
-        }
-				//*/
       }
 
       state = new State(state, child, rule, item, namespaceTbl);
-      /*
-      console.log("state448");
-      console.log(state);
-			//*/
-      const thisBefore = getAttachmentMethod(state, bTree, "_before");
-      if (!!thisBefore) {
-        thisBefore.call(item);
+      // TODO why did the previous version of this lib only call item._before
+      // from inside the if (rule && !rule.isPlainPrimitive) block above?
+      if (rule && !rule.isPlainPrimitive) {
+        const thisBefore = getAttachmentMethod(state, bTree, "_before");
+        if (!!thisBefore) {
+          thisBefore.call(item);
+        }
       }
     });
 
@@ -480,14 +444,14 @@ export class Parser {
         else obj.content = content;
       }
 
-      /*
+      //*
       if (obj) {
         const thisAfter = getAttachmentMethod(state, bTree, "_after");
         if (!!thisAfter) {
           thisAfter.call(obj);
         }
       }
-			//*/
+      //*/
 
       state = state.parent;
 
