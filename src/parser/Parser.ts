@@ -64,6 +64,7 @@ export type NonBinaryOpToRights = { [K in "=" | "!="]: string | number };
 export type BinaryOpToRights = {
   [K in "&lt;" | "&lt;=" | "&gt;" | ">" | "&gt;=" | ">="]: number
 };
+// TODO look at moving some of these type definitions into xpath.ts
 export type OpToRights = NonBinaryOpToRights & BinaryOpToRights;
 export type OpHandlerInputGeneric<T, K extends keyof T> = {
   left: string;
