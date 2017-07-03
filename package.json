@@ -1,6 +1,6 @@
 {
   "name": "@wikipathways/cxml",
-  "version": "0.2.1-1",
+  "version": "0.1.2",
   "description": "Advanced schema-aware streaming XML parser",
   "main": "lib/cxml.js",
   "typings": "lib/cxml.d.ts",
