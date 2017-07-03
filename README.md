@@ -1,6 +1,8 @@
 cxml
 ====
 
+NOTE: the master branch of the source repo for this project did not compile. [This fork](https://github.com/ariutta/cxml) simply updates the code so that master compiles and augments the testing.
+
 [![build status](https://travis-ci.org/charto/cxml.svg?branch=master)](http://travis-ci.org/charto/cxml)
 [![dependency status](https://david-dm.org/charto/cxml.svg)](https://david-dm.org/charto/cxml)
 [![npm version](https://img.shields.io/npm/v/cxml.svg)](https://www.npmjs.com/package/cxml)
