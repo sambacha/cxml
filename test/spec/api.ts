@@ -1,26 +1,29 @@
 import * as cxml from "../..";
 import * as Promise from "bluebird";
-var fs = require("fs");
-var path = require("path");
+const fs = require("fs");
+const path = require("path");
 import * as gpml from "../xmlns/pathvisio.org/GPML/2013a";
 import * as example from "../xmlns/dir-example";
 
 jasmine.DEFAULT_TIMEOUT_INTERVAL = 20 * 1000;
 
-test("parse string", done => {
-  var parser = new cxml.Parser();
+test("Attach handler w/ _before & _after. Parse string", () => {
+  // NOTE: this assertion count is NOT taking into account
+  // the commented out expect below regarding
+  // "dir instanceof example.document.dir.constructor"
+  expect.assertions(8);
+
+  const parser = new cxml.Parser();
 
   parser.attach(
     class DirHandler extends example.document.dir.constructor {
       /** Fires when the opening <dir> and attributes have been parsed. */
 
-      _before() {
+      _after() {
         expect(this).toEqual({ name: "empty" });
       }
 
-      /** Fires when the closing </dir> and children have been parsed. */
-
-      _after() {
+      _before() {
         expect(this).toEqual({ name: "empty" });
       }
     }
@@ -28,9 +31,9 @@ test("parse string", done => {
 
   const result = parser.parse('<dir name="empty"></dir>', example.document);
 
-  result.then((doc: example.document) => {
+  return result.then((doc: example.document) => {
     expect(doc).toEqual({ dir: { name: "empty" } });
-    var dir = doc.dir;
+    const dir = doc.dir;
 
     // TODO why doesn't this pass?
     //expect(dir instanceof example.document.dir.constructor).toBe(true);
@@ -40,14 +43,14 @@ test("parse string", done => {
     expect(dir instanceof example.FileType).toBe(false);
 
     expect(dir._exists).toBe(true);
-    expect(dir.file[0]._exists).toBeFalsy;
-
-    done();
+    expect(dir.file[0]._exists).toBe(false);
   });
 });
 
-test("parse stream", done => {
-  var parser = new cxml.Parser();
+test("Attach handler w/ _before & _after. Parse stream.", () => {
+  expect.assertions(3);
+
+  const parser = new cxml.Parser();
 
   parser.attach(
     class DirHandler extends example.document.dir.constructor {
@@ -56,8 +59,6 @@ test("parse stream", done => {
       _before() {
         expect(this.name).toBe("123");
       }
-
-      /** Fires when the closing </dir> and children have been parsed. */
 
       _after() {
         expect(this).toEqual({
@@ -70,11 +71,11 @@ test("parse stream", done => {
   );
 
   const result = parser.parse(
-    fs.createReadStream(path.resolve(__dirname, "../xml/dir-example.xml")),
+    fs.createReadStream(path.resolve(__dirname, "../input/dir-example.xml")),
     example.document
   );
 
-  result.then((doc: example.document) => {
+  return result.then((doc: example.document) => {
     expect(doc).toEqual({
       dir: {
         name: "123",
@@ -88,14 +89,13 @@ test("parse stream", done => {
         ]
       }
     });
-    done();
   });
 });
 
-test("parse string and stream w/ parser attachments", done => {
-  var parser = new cxml.Parser();
-
+test("Attach handler w/ _before & _after. Parse both string and stream.", () => {
   expect.assertions(11);
+
+  const parser = new cxml.Parser();
 
   parser.attach(
     class DirHandler extends example.document.dir.constructor {
@@ -119,16 +119,16 @@ test("parse string and stream w/ parser attachments", done => {
   );
 
   const resultFromStream = parser.parse(
-    fs.createReadStream(path.resolve(__dirname, "../xml/dir-example.xml")),
+    fs.createReadStream(path.resolve(__dirname, "../input/dir-example.xml")),
     example.document
   );
 
-  Promise.all([resultFromString, resultFromStream]).then(function(
+  return Promise.all([resultFromString, resultFromStream]).then(function(
     [docFromString, docFromStream]: [example.document, example.document]
   ) {
     expect(docFromString).toEqual({ dir: { name: "empty" } });
 
-    var dirFromString = docFromString.dir;
+    const dirFromString = docFromString.dir;
 
     // TODO why doesn't this pass?
     //expect(dirFromString instanceof example.document.dir.constructor).toBe(true);
@@ -155,290 +155,481 @@ test("parse string and stream w/ parser attachments", done => {
         ]
       }
     });
-    done();
   });
 });
 
-test("attach to and parse broken Pathway from string", done => {
-  var parser = new cxml.Parser();
-  parser.attach(
-    class CustomHandler extends gpml.document.Pathway.constructor {
-      _before() {
-        console.log("Before:");
-        console.log(JSON.stringify(this));
-        expect(typeof this).toBe("object");
-      }
-
-      _after() {
-        console.log("After:");
-        console.log(JSON.stringify(this));
-        expect(typeof this).toBe("object");
-      }
-    }
-  );
-  var result = parser.parse(
-    '<DataNode name="sample pathway"><Comment>hello there</Comment></DataNode>',
-    gpml.document
-  );
-  result.then(doc => {
-    console.log("\n=== 123 ===\n");
-    console.log(JSON.stringify(doc, null, 2));
-    expect(typeof doc).toBe("object");
-    done();
-  });
-});
-
-test("attach to and parse Pathway from string", done => {
-  var parser = new cxml.Parser();
-  parser.attach(
-    class CustomHandler extends gpml.document.Pathway.constructor {
-      _before() {
-        console.log("Before:");
-        console.log(JSON.stringify(this));
-        expect(typeof this).toBe("object");
-      }
-
-      _after() {
-        console.log("After:");
-        console.log(JSON.stringify(this));
-        expect(typeof this).toBe("object");
-      }
-    }
-  );
-  var result = parser.parse(
-    '<Pathway name="sample pathway"><Comment>hello there</Comment></Pathway>',
-    gpml.document
-  );
-  result.then(doc => {
-    console.log("\n=== 123 ===\n");
-    console.log(JSON.stringify(doc, null, 2));
-    expect(typeof doc).toBe("object");
-    done();
-  });
-});
-
-test("attach to and parse Pathway from stream", done => {
-  var parser = new cxml.Parser();
-  parser.attach(
-    class CustomHandler extends gpml.document.Pathway.constructor {
-      _before() {
-        console.log("Before:");
-        console.log(JSON.stringify(this));
-        expect(typeof this).toBe("object");
-      }
-
-      _after() {
-        console.log("After:");
-        console.log(JSON.stringify(this));
-        expect(typeof this).toBe("object");
-      }
-    }
-  );
-  var result = parser.parse(
-    fs.createReadStream(path.resolve(__dirname, "../input/one-of-each.gpml")),
-    gpml.document
-  );
-  result.then(doc => {
-    console.log("\n=== 123 ===\n");
-    console.log(JSON.stringify(doc, null, 2));
-    expect(typeof doc).toBe("object");
-    done();
-  });
-});
-
-//test("attach to Pathway.DataNode[0].Comment[0]", done => {
-//  var parser = new cxml.Parser();
-//  parser.attach(
-//    class CustomHandler extends gpml.document.Pathway.DataNode[0].Comment[0]
-//      .constructor {
-//      /*
-//      _before() {
-//        console.log("Before:");
-//        console.log(JSON.stringify(this));
-//        expect(typeof this).toBe("object");
-//      }
-//			//*/
+//test("attach to and parse broken Pathway from string", () => {
+//  expect.assertions(3);
 //
-//      _after() {
-//        console.log("After:");
-//        console.log(JSON.stringify(this));
-//        expect(this.content).toBe("DataNode: anotherComment");
-//      }
-//    }
-//  );
-//  var result = parser.parse(
-//    fs.createReadStream(path.resolve(__dirname, "../input/one-of-each.gpml")),
-//    gpml.document
-//  );
-//  result.then(doc => {
-//    console.log("\n=== 123 ===\n");
-//    console.log(JSON.stringify(doc, null, 2));
-//    expect(typeof doc).toBe("object");
-//    done();
-//  });
-//});
-
-////***************************
-//var parser1 = new cxml.Parser();
-//var result1 = parser1.parse(
-//  fs.createReadStream(path.resolve(__dirname, "../input/one-of-each.gpml")),
-//  gpml.document
-//);
-//
-//parser1.attach(
-//  class CustomHandler extends gpml.document.Pathway.constructor {
-//    _before() {
-//      console.log("this _before");
-//      console.log(this);
-//    }
-//
-//    _after() {
-//      console.log("this _after");
-//      console.log(this);
-//    }
-//  }
-//);
-//
-//result1.then(doc => {
-//  console.log("\n=== 123 ===\n");
-//  console.log(JSON.stringify(doc, null, 2));
-//});
-////***************************
-//
-//var parser = new cxml.Parser();
-//
-//var result = parser.parse(
-//  fs.createReadStream(path.resolve(__dirname, "../input/one-of-each.gpml")),
-//  gpml.document
-//);
-//
-//test("attach to Pathway", done => {
+//  const parser = new cxml.Parser();
 //  parser.attach(
 //    class CustomHandler extends gpml.document.Pathway.constructor {
 //      _before() {
 //        console.log("this _before");
 //        console.log(this);
+//        expect(typeof this).toBe("object");
 //      }
 //
 //      _after() {
 //        console.log("this _after");
 //        console.log(this);
-//        done();
+//        expect(typeof this).toBe("object");
 //      }
 //    }
 //  );
+//  return parser
+//    .parse(
+//      '<DataNode Name="sample pathway"><Comment>hello there</Comment></DataNode>',
+//      gpml.document
+//    )
+//    .then(doc => {
+//      expect(typeof doc).toBe("object");
+//    });
 //});
-//
-//parser.attach(
-//  class CustomHandler extends gpml.document.Pathway.Comment[0].constructor {
-//    _before() {
-//      //expect(typeof this).toBe("object");
-//    }
-//
-//    _after() {
-//      console.log("this");
-//      console.log(this);
-//      /*
-//			if (iAfter < 1) {
-//				expect(this.content).toBe("Document: mycommentA");
-//				done();
-//			}
-//			iAfter += 1;
-//			//*/
-//    }
-//  }
-//);
-//
-////test("attach to Pathway.Comment[0]", done => {
-////  let iAfter = 0;
-////  expect.assertions(1);
-////  parser.attach(
-////    class CustomHandler extends gpml.document.Pathway.Comment[0]
-////      .constructor {
-////      _before() {
-////        //expect(typeof this).toBe("object");
-////      }
-////
-////      _after() {
-////        console.log("this");
-////        console.log(this);
-////        expect(this.content).toBe("Document: mycommentA");
-////        done();
-////        /*
-////        if (iAfter < 1) {
-////          expect(this.content).toBe("Document: mycommentA");
-////          done();
-////        }
-////        iAfter += 1;
-////				//*/
-////      }
-////    }
-////  );
-////});
-//
-////test("attach to Pathway.DataNode[0].Comment[0]", done => {
-////  let called = false;
-////  parser.attach(
-////    class CustomHandler extends gpml.document.Pathway.DataNode[0].Comment[0]
-////      .constructor {
-////      /*
-////      _before() {
-////        console.log("Before:");
-////        console.log(JSON.stringify(this));
-////        expect(typeof this).toBe("object");
-////      }
-////			//*/
-////
-////      _after() {
-////        console.log("After:");
-////        console.log(JSON.stringify(this));
-////        if (!called) {
-////          called = true;
-////          expect(this.content).toBe("DataNode: anotherComment");
-////          done();
-////        }
-////      }
-////    }
-////  );
-////});
-//
-//test("full response", () => {
-//  expect.assertions(1);
-//  return result.then(doc => {
-//    //console.log("\n=== 123 ===\n");
-//    //console.log(JSON.stringify(doc, null, 2));
-//    expect(typeof doc).toBe("object");
-//  });
-//});
-//
-///*
-//console.log("gpml.document.Pathway.Comment[0].constructor.toString()");
-//console.log(gpml.document.Pathway.Comment[0].constructor.toString());
-//console.log(gpml.document.Pathway.Comment[0].constructor);
-//console.log(gpml.document.Pathway.Comment[0]);
-//
-//console.log(
-//  "gpml.document.Pathway.DataNode[0].Comment[0].constructor.toString()"
-//);
-//console.log(
-//  gpml.document.Pathway.DataNode[0].Comment[0].constructor.toString()
-//);
-//console.log(gpml.document.Pathway.DataNode[0].Comment[0].constructor);
-//console.log(gpml.document.Pathway.Comment[0]);
-////*/
-//
-//// passes
-//test("path awareness1", () => {
-//  expect(gpml.document.Pathway.Comment).not.toBe(
-//    gpml.document.Pathway.DataNode[0].Comment
-//  );
-//});
-//
-///*
-//// fails
-//test("path awareness2", () => {
-//  expect(gpml.document.Pathway.Comment[0]).not.toBe(
-//    gpml.document.Pathway.DataNode[0].Comment[0]
-//  );
-//});
-////*/
+
+[
+  `<gpml:Pathway xmlns:gpml="http://pathvisio.org/GPML/2013a" Name="sample pathway">
+		<gpml:Comment>hello there</gpml:Comment>
+	</gpml:Pathway>`,
+
+  `<Pathway xmlns:x="http://pathvisio.org/GPML/2013a" Name="sample pathway">
+		<Comment>hello there</Comment>
+	</Pathway>`,
+
+  `<Pathway xmlns="http://pathvisio.org/GPML/2013a" Name="sample pathway">
+		<Comment>hello there</Comment>
+	</Pathway>`,
+
+  `<Pathway Name="sample pathway">
+		<Comment>hello there</Comment>
+	</Pathway>`
+]
+  .reduce(function(acc, pathway) {
+    acc.push(pathway);
+    acc.push('<?xml version="1.0" encoding="utf-8"?>\n' + pathway);
+    return acc;
+  }, [])
+  .concat([
+    fs.createReadStream(path.resolve(__dirname, "../input/simple.gpml"))
+  ])
+  .forEach(function(input, i) {
+    test(`Attach handlers w/ _before & _after. Parse simple GPML (input index: ${i}).`, () => {
+      expect.assertions(6);
+
+      const parser = new cxml.Parser();
+      parser.attach(
+        class CustomHandler extends gpml.document.Pathway.constructor {
+          _before() {
+            expect(this.Name).toBe("sample pathway");
+            expect(this.Comment[0]._exists).toBe(false);
+          }
+
+          _after() {
+            expect(this.Name).toBe("sample pathway");
+            expect(this.Comment[0].content).toBe("hello there");
+          }
+        }
+      );
+
+      return parser.parse(input, gpml.document).then(doc => {
+        const pathway = doc.Pathway;
+        expect(pathway.Name).toBe("sample pathway");
+        expect(pathway.Comment[0].content).toBe("hello there");
+      });
+    });
+  });
+
+test("Attach handler w/ _before & _after for /Pathway/@*. Parse simple GPML string.", () => {
+  expect.assertions(2);
+
+  const parser = new cxml.Parser();
+
+  parser.attach(
+    class CustomHandler extends gpml.document.Pathway.constructor {
+      _before() {
+        expect(typeof this).toBe("object");
+      }
+      _after() {}
+    }
+  );
+
+  return parser
+    .parse(
+      '<Pathway Name="sample pathway"><Comment>hello there</Comment></Pathway>',
+      gpml.document
+    )
+    .then(doc => {
+      expect(typeof doc).toBe("object");
+    });
+});
+
+test(`Attach handler w/ _before & _after for /Pathway/DataNode[@GraphId="abc123"]. Parse simple GPML string.
+		 Known Bug: Parses all DataNodes, not just the one with GraphId of "abc123", because attaching a handler
+		 for gpml.document.Pathway.DataNode[0].constructor earlier had a side effect on this handler.`, () => {
+  expect.assertions(2);
+
+  const parser = new cxml.Parser();
+
+  // TODO remove side effects so we don't have to explicitly reset the handler
+  parser.attach(
+    class CustomHandler extends gpml.document.Pathway.constructor {
+      _before() {}
+      _after() {}
+    }
+  );
+
+  parser.attach(
+    class CustomHandler extends gpml.document.Pathway.DataNode[0].constructor {
+      _before() {
+        if (this.GraphId === "abc123") {
+          expect(this.Type).toBe("Metabolite");
+        }
+      }
+      _after() {}
+    }
+  );
+
+  return parser
+    .parse(
+      `<Pathway Name="sample pathway">
+				<Comment Source="my-pathway-comment-source">my-pathway-comment</Comment>
+				<DataNode GraphId="abc122" Type="GeneProduct">
+					<Comment Source="my-datanode1-comment-source">my-datanode1-comment</Comment>
+				</DataNode>
+				<DataNode GraphId="abc123" Type="Metabolite">
+					<Comment Source="my-datanode2-comment-source">my-datanode2-comment</Comment>
+				</DataNode>
+				<DataNode GraphId="abc124" Type="Pathway">
+					<Comment Source="my-datanode3-comment-source">my-datanode3-comment</Comment>
+				</DataNode>
+			</Pathway>`,
+      gpml.document
+    )
+    .then(doc => {
+      expect(typeof doc).toBe("object");
+    });
+});
+
+test(`Attach handler w/ _before & _after for /Pathway/DataNode/Graphics[@CenterX>1]. Parse simple GPML string.
+		 Known Bug: Parses all Graphics, not just the one with CenterX > 1.`, () => {
+  expect.assertions(3);
+
+  const parser = new cxml.Parser();
+
+  // TODO remove side effects so we don't have to explicitly reset the handler
+  parser.attach(
+    class CustomHandler extends gpml.document.Pathway.constructor {
+      _before() {}
+      _after() {}
+    }
+  );
+  parser.attach(
+    class CustomHandler extends gpml.document.Pathway.DataNode[0].constructor {
+      _before() {}
+      _after() {}
+    }
+  );
+
+  parser.attach(
+    class CustomHandler extends gpml.document.Pathway.DataNode[0].Graphics
+      .constructor {
+      _before() {
+        if (this.CenterX > 1) {
+          expect(this.CenterX).toBe(2);
+          expect(this.CenterY).toBe(4);
+        }
+      }
+      _after() {}
+    }
+  );
+
+  return parser
+    .parse(
+      `<Pathway Name="sample pathway">
+				<Comment Source="my-pathway-comment-source">my-pathway-comment</Comment>
+				<DataNode GraphId="abc122" Type="GeneProduct">
+					<Graphics CenterX="1" CenterY="2"/>
+					<Comment Source="my-datanode1-comment-source">my-datanode1-comment</Comment>
+				</DataNode>
+				<DataNode GraphId="abc123" Type="Metabolite">
+					<Graphics CenterX="2" CenterY="4"/>
+					<Comment Source="my-datanode2-comment-source">my-datanode2-comment</Comment>
+				</DataNode>
+				<DataNode GraphId="abc124" Type="Pathway">
+					<Graphics CenterX="0.5" CenterY="1"/>
+					<Comment Source="my-datanode3-comment-source">my-datanode3-comment</Comment>
+				</DataNode>
+			</Pathway>`,
+      gpml.document
+    )
+    .then(doc => {
+      expect(typeof doc).toBe("object");
+    });
+});
+
+test(`Attach handler w/ _before & _after for /Pathway/Comment. Parse simple GPML string.
+		 Known Bug: Parses all Comments, not just children of the Pathway element,
+		 b/c cxml is not path aware.`, () => {
+  expect.assertions(5);
+
+  const parser = new cxml.Parser();
+  parser.attach(
+    class CustomHandler extends gpml.document.Pathway.Comment[0].constructor {
+      _before() {
+        expect(this.content).toBe(undefined);
+        // TODO update how TS definition is generated in cxsd so that we can reference this.Source._exists
+        expect(this.Source["_exists"]).toBe(false);
+      }
+
+      _after() {
+        expect(this.content).toBe("hello there");
+        expect(this.Source["_exists"]).toBe(false);
+      }
+    }
+  );
+  return parser
+    .parse(
+      '<Pathway Name="sample pathway"><Comment>hello there</Comment></Pathway>',
+      gpml.document
+    )
+    .then(doc => {
+      expect(typeof doc).toBe("object");
+    });
+});
+
+test(`Attach handler w/ _before & _after for /Pathway/DataNode/Comment. Parse simple GPML string.
+		 Known Bug: Parses all Comments, not just children of DataNode elements,
+		 b/c cxml is not path aware.`, () => {
+  expect.assertions(6);
+
+  const parser = new cxml.Parser();
+
+  // TODO remove side effects so we don't have to explicitly reset the handler
+  parser.attach(
+    class CustomHandler extends gpml.document.Pathway.constructor {
+      _before() {}
+      _after() {}
+    }
+  );
+  parser.attach(
+    class CustomHandler extends gpml.document.Pathway.Comment[0].constructor {
+      _before() {}
+      _after() {}
+    }
+  );
+  parser.attach(
+    class CustomHandler extends gpml.document.Pathway.DataNode[0].constructor {
+      _before() {}
+      _after() {}
+    }
+  );
+  parser.attach(
+    class CustomHandler extends gpml.document.Pathway.DataNode[0].Graphics
+      .constructor {
+      _before() {}
+      _after() {}
+    }
+  );
+
+  parser.attach(
+    class CustomHandler extends gpml.document.Pathway.DataNode[0].Comment[0]
+      .constructor {
+      _before() {
+        expect(this.content).toBe(undefined);
+        expect(this.Source).toBe("my-datanode-comment-source");
+      }
+
+      _after() {
+        expect(this.content).toBe("my-datanode-comment");
+        expect(this.Source).toBe("my-datanode-comment-source");
+      }
+    }
+  );
+
+  return parser
+    .parse(
+      `<Pathway Name="sample pathway">
+				<Comment Source="my-pathway-comment-source">my-pathway-comment</Comment>
+				<DataNode>
+					<Comment Source="my-datanode-comment-source">my-datanode-comment</Comment>
+				</DataNode>
+			</Pathway>`,
+      gpml.document
+    )
+    .then(doc => {
+      const comment = doc.Pathway.DataNode[0].Comment[0];
+      expect(comment.content).toBe("my-datanode-comment");
+      expect(comment.Source).toBe("my-datanode-comment-source");
+    });
+});
+
+test("Attach handler w/ _before & _after for /Pathway. Parse one-of-each GPML stream.", () => {
+  expect.assertions(3);
+
+  const parser = new cxml.Parser();
+
+  // TODO remove side effects so we don't have to explicitly reset the handler
+  parser.attach(
+    class CustomHandler extends gpml.document.Pathway.Comment[0].constructor {
+      _before() {}
+      _after() {}
+    }
+  );
+  parser.attach(
+    class CustomHandler extends gpml.document.Pathway.DataNode[0].Comment[0]
+      .constructor {
+      _before() {}
+      _after() {}
+    }
+  );
+
+  parser.attach(
+    class CustomHandler extends gpml.document.Pathway.constructor {
+      _before() {
+        expect(typeof this).toBe("object");
+      }
+
+      _after() {
+        expect(typeof this).toBe("object");
+      }
+    }
+  );
+
+  return parser
+    .parse(
+      fs.createReadStream(path.resolve(__dirname, "../input/one-of-each.gpml")),
+      gpml.document
+    )
+    .then(doc => {
+      expect(typeof doc).toBe("object");
+    });
+});
+
+test(`Attach handler w/ _before & _after for /Pathway/DataNode/Comment. Parse one-of-each GPML stream.
+		 Known Bug: Parses all Comments, not just children of DataNode elements,
+		 b/c cxml is not path aware.`, () => {
+  expect.assertions(4);
+
+  const parser = new cxml.Parser();
+
+  parser.attach(
+    class CustomHandler extends gpml.document.Pathway.DataNode[0].Comment[0]
+      .constructor {
+      _before() {
+        expect(typeof this).toBe("object");
+      }
+
+      _after() {
+        expect(typeof this).toBe("object");
+        // TODO this assertion is disabled because cxml is not path aware
+        //expect(this.content).toEqual("DataNode comment");
+      }
+    }
+  );
+
+  return parser
+    .parse(
+      fs.createReadStream(path.resolve(__dirname, "../input/one-of-each.gpml")),
+      gpml.document
+    )
+    .then(doc => {
+      const comment = doc.Pathway.DataNode[1].Comment[0];
+      expect(comment.content).toBe("DataNode comment");
+      expect(typeof doc.Pathway.Graphics).toBe("object");
+    });
+});
+
+test(`Attach handlers for both /Pathway/Comment & /Pathway/DataNode/Comment.
+		 Parse one-of-each GPML stream.
+		 Known Bug: Parses all Comments, not just children of DataNode elements,
+		 b/c cxml is not path aware.`, () => {
+  expect.assertions(6);
+
+  const parser = new cxml.Parser();
+
+  parser.attach(
+    class CustomHandler extends gpml.document.Pathway.Comment[0].constructor {
+      _before() {
+        expect(typeof this).toBe("object");
+      }
+
+      _after() {
+        expect(typeof this).toBe("object");
+        // TODO this assertion is disabled because cxml is not path aware
+        //expect(this.content).toBe("pathway wide comment");
+      }
+    }
+  );
+
+  parser.attach(
+    class CustomHandler extends gpml.document.Pathway.DataNode[0].Comment[0]
+      .constructor {
+      _before() {
+        expect(typeof this).toBe("object");
+      }
+
+      _after() {
+        expect(typeof this).toBe("object");
+        // TODO this assertion is disabled because cxml is not path aware
+        //expect(this.content).toBe("DataNode comment");
+      }
+    }
+  );
+
+  return parser
+    .parse(
+      fs.createReadStream(path.resolve(__dirname, "../input/one-of-each.gpml")),
+      gpml.document
+    )
+    .then(doc => {
+      const comment = doc.Pathway.DataNode[1].Comment[0];
+      expect(comment.content).toBe("DataNode comment");
+      expect(typeof doc.Pathway.Graphics).toBe("object");
+    });
+});
+
+test(`Attach handlers for both /Pathway/Comment & /Pathway/DataNode.
+		 Parse one-of-each GPML stream.
+		 Known Bug: Parses all Comments, not just children of Pathway elements,
+		 b/c cxml is not path aware.`, () => {
+  expect.assertions(16);
+
+  const parser = new cxml.Parser();
+
+  parser.attach(
+    class CustomHandler extends gpml.document.Pathway.Comment[0].constructor {
+      _before() {
+        expect(typeof this).toBe("object");
+      }
+
+      _after() {
+        expect(typeof this).toBe("object");
+        // TODO this assertion is disabled because cxml is not path aware
+        //expect(this.content).toBe("pathway wide comment");
+      }
+    }
+  );
+
+  parser.attach(
+    class CustomHandler extends gpml.document.Pathway.DataNode[0].constructor {
+      _before() {
+        expect(typeof this).toBe("object");
+      }
+
+      _after() {
+        expect(typeof this).toBe("object");
+      }
+    }
+  );
+
+  return parser
+    .parse(
+      fs.createReadStream(path.resolve(__dirname, "../input/one-of-each.gpml")),
+      gpml.document
+    )
+    .then(doc => {
+      const comment = doc.Pathway.DataNode[1].Comment[0];
+      expect(comment.content).toBe("DataNode comment");
+      expect(typeof doc.Pathway.Graphics).toBe("object");
+    });
+});
