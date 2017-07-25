@@ -5,7 +5,7 @@ var path = require("path");
 import * as gpml from "../xmlns/pathvisio.org/GPML/2013a";
 import * as example from "../xmlns/dir-example";
 
-jasmine.DEFAULT_TIMEOUT_INTERVAL = 20 * 1000;
+jasmine.DEFAULT_TIMEOUT_INTERVAL = 10 * 1000;
 
 test("Attach handler w/ _before & _after. Parse string", () => {
   // NOTE: this assertion count is NOT taking into account
