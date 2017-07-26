@@ -246,30 +246,58 @@ test("Attach handler w/ _before & _after. Parse both string and stream.", () => 
     });
   });
 
-//test("Attach handler w/ _before & _after for /Pathway/@*. Parse simple GPML string.", () => {
-//  expect.assertions(2);
-//
-//  var parser = new cxml.Parser();
-//
-//  parser.attach(
-//    class CustomHandler extends gpml.document.Pathway.constructor {
-//      _before() {
-//        expect(typeof this).toBe("object");
-//      }
-//      _after() {}
-//    },
-//    "/Pathway/@*"
-//  );
-//
-//  return parser
-//    .parse(
-//      '<Pathway Name="sample pathway"><Comment>hello there</Comment></Pathway>',
-//      gpml.document
-//    )
-//    .then(doc => {
-//      expect(typeof doc).toBe("object");
-//    });
-//});
+// TODO somewhere, maybe here or maybe cxml, add support for "/Pathway/Data/@*"
+// it's really easy: just return value from "before". Otherwise, return value from after.
+
+test("Attach handler w/ _before & _after for /Pathway/@Name. Parse simple GPML string.", () => {
+  expect.assertions(2);
+
+  var parser = new cxml.Parser();
+
+  parser.attach(
+    class CustomHandler extends gpml.document.Pathway.constructor {
+      _before() {
+        expect(JSON.stringify(this)).toBe('{"Name":"sample pathway"}');
+      }
+      _after() {}
+    },
+    "/Pathway/@Name"
+  );
+
+  return parser
+    .parse(
+      '<Pathway Organism="Homo sapiens" Name="sample pathway"><Comment>hello there</Comment></Pathway>',
+      gpml.document
+    )
+    .then(doc => {
+      expect(typeof doc).toBe("object");
+    });
+});
+
+test("Attach handler w/ _before & _after for /Pathway/@*. Parse simple GPML string.", () => {
+  expect.assertions(2);
+
+  var parser = new cxml.Parser();
+
+  parser.attach(
+    class CustomHandler extends gpml.document.Pathway.constructor {
+      _before() {
+        expect(typeof this).toBe("object");
+      }
+      _after() {}
+    },
+    "/Pathway/@*"
+  );
+
+  return parser
+    .parse(
+      '<Pathway Organism="Homo sapiens" Name="sample pathway"><Comment>hello there</Comment></Pathway>',
+      gpml.document
+    )
+    .then(doc => {
+      expect(typeof doc).toBe("object");
+    });
+});
 
 test('Attach handler w/ _before & _after for /Pathway/DataNode[@GraphId="abc123"]. Parse simple GPML string.', () => {
   expect.assertions(2);
@@ -288,7 +316,7 @@ test('Attach handler w/ _before & _after for /Pathway/DataNode[@GraphId="abc123"
 
   return parser
     .parse(
-      `<Pathway Name="sample pathway">
+      `<Pathway Organism="Homo sapiens" Name="sample pathway">
 				<Comment Source="my-pathway-comment-source">my-pathway-comment</Comment>
 				<DataNode GraphId="abc122" Type="GeneProduct">
 					<Comment Source="my-datanode1-comment-source">my-datanode1-comment</Comment>
@@ -326,7 +354,7 @@ test("Attach handler w/ _before & _after for /Pathway/DataNode/Graphics[@CenterX
 
   return parser
     .parse(
-      `<Pathway Name="sample pathway">
+      `<Pathway Organism="Homo sapiens" Name="sample pathway">
 				<Comment Source="my-pathway-comment-source">my-pathway-comment</Comment>
 				<DataNode GraphId="abc122" Type="GeneProduct">
 					<Graphics CenterX="1" CenterY="2"/>
@@ -366,7 +394,7 @@ test("Attach handler w/ _before & _after for /Pathway/FakeElement. Parse simple 
   );
   return parser
     .parse(
-      '<Pathway Name="sample pathway"><Comment>hello there</Comment></Pathway>',
+      '<Pathway Organism="Homo sapiens" Name="sample pathway"><Comment>hello there</Comment></Pathway>',
       gpml.document
     )
     .then(doc => {
@@ -392,7 +420,7 @@ test("Attach handler w/ _before & _after for /Pathway/Comment. Parse simple GPML
   );
   return parser
     .parse(
-      '<Pathway Name="sample pathway"><Comment>hello there</Comment></Pathway>',
+      '<Pathway Organism="Homo sapiens" Name="sample pathway"><Comment>hello there</Comment></Pathway>',
       gpml.document
     )
     .then(doc => {
@@ -423,7 +451,7 @@ test("Attach handler for /Pathway/DataNode/Comment. Parse simple GPML string", (
 
   return parser
     .parse(
-      `<Pathway Name="sample pathway">
+      `<Pathway Organism="Homo sapiens" Name="sample pathway">
 				<Comment Source="my-pathway-comment-source">my-pathway-comment</Comment>
 				<DataNode>
 					<Comment Source="my-datanode-comment-source">my-datanode-comment</Comment>
@@ -582,3 +610,41 @@ test("Attach handlers for both /Pathway/Comment & /Pathway/DataNode. Parse.", ()
       expect(typeof doc.Pathway.Graphics).toBe("object");
     });
 });
+
+//// TODO enable support for "any level" axis: "//"
+//test("Attach handlers for //Comment. Parse.", () => {
+//  expect.assertions(4);
+//
+//  var parser = new cxml.Parser();
+//
+//  parser.attach(
+//    class CustomHandler extends gpml.document.Pathway.Comment[0].constructor {
+//      _before() {
+//        expect(typeof this).toBe("object");
+//      }
+//
+//      _after() {
+//        expect(this.content).toBe("pathway wide comment");
+//      }
+//    },
+//    "//Comment"
+//  );
+//
+//  return parser
+//    .parse(
+//      `<Pathway Organism="Homo sapiens" Name="sample pathway">
+//				<Comment Source="my-pathway-comment-source">my-pathway-comment</Comment>
+//				<DataNode GraphId="abc122" Type="GeneProduct">
+//					<Comment Source="my-datanode1-comment-source">my-datanode1-comment</Comment>
+//				</DataNode>
+//				<DataNode GraphId="abc123" Type="Metabolite">
+//					<Comment Source="my-datanode2-comment-source">my-datanode2-comment</Comment>
+//				</DataNode>
+//				<DataNode GraphId="abc124" Type="Pathway"></DataNode>
+//			</Pathway>`,
+//      gpml.document
+//    )
+//    .then(doc => {
+//      expect(typeof doc.Pathway).toBe("object");
+//    });
+//});

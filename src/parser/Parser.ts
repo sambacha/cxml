@@ -2,7 +2,7 @@
 // Released under the MIT license, see LICENSE.
 
 import "source-map-support/register";
-import { defaultsDeep, keys, toPairs } from "lodash";
+import { defaultsDeep, flow, keys, pick, toPairs } from "lodash";
 import * as stream from "stream";
 import * as Promise from "bluebird";
 import * as sax from "sax";
@@ -21,10 +21,10 @@ export type ItemParsedValue = ItemParsed[ItemParsedKey];
 // TODO can this type definition be improved?
 /*
 {
-	xpathEl(obj): {
+	xpathElMatcher(obj): {
  	  _before: Function,
  	  _after: Function,
-		xpathEl(obj): {
+		xpathElMatcher(obj): {
 			_before: Function,
 			_after: Function,
 		}(Map),
@@ -284,32 +284,54 @@ export class Parser<T> {
     const { _before, _after } = proto;
     if (xpath) {
       if (_before || _after) {
-        const parsedXPathR = parse(xpath).reverse();
-        const finalItem = parsedXPathR.reduce(function(
+        // TODO we are mutating reversedXPathElMatchers for xpath
+        // expressions with attributes, such as
+        // "/Pathway/@GraphId"
+        // or
+        // "/Pathway/@*"
+        // because we need to first just match the element(s), and
+        // then afterwards match any attribute.
+        let reversedXPathElMatchers = parse(xpath).reverse();
+        let xpathAttrMatcher: { attribute: string };
+        if (reversedXPathElMatchers[0].attribute !== null) {
+          xpathAttrMatcher = reversedXPathElMatchers.shift();
+        }
+        const finalItem = reversedXPathElMatchers.reduce(function(
           parentMap,
-          xpathEl: ItemParsed
+          xpathElMatcher: ItemParsed
         ) {
-          const xpathElPairs = toPairs(xpathEl);
+          const xpathElMatcherPairs = toPairs(xpathElMatcher);
           let [currentMap, currentItemParsed]: [
             BTree<T>,
             ItemParsed
           ] = findEntry(parentMap.entries(), function(candidateItemParsed) {
-            return xpathElPairs.reduce(function(
+            return xpathElMatcherPairs.reduce(function(
               isRunningMatch: boolean,
-              [xpathElKey, xpathElValue]: [ItemParsedKey, ItemParsedValue]
+              [xpathElMatcherKey, xpathElMatcherValue]: [
+                ItemParsedKey,
+                ItemParsedValue
+              ]
             ) {
               return (
                 isRunningMatch &&
-                candidateItemParsed[xpathElKey] === xpathElValue
+                candidateItemParsed[xpathElMatcherKey] === xpathElMatcherValue
               );
             }, true);
-          }) || [new Map(), xpathEl];
+          }) || [new Map(), xpathElMatcher];
           parentMap.set(currentItemParsed, currentMap);
           return currentMap;
         }, this.bTree);
 
         if (_before) {
-          finalItem.set("_before", _before);
+          finalItem.set(
+            "_before",
+            !xpathAttrMatcher || xpathAttrMatcher.attribute === "*"
+              ? _before
+              : function(this: Map<string, string | number | boolean | "">) {
+                  const picked = pick(this, xpathAttrMatcher.attribute);
+                  _before.call(picked);
+                }
+          );
         }
         if (_after) {
           finalItem.set("_after", _after);
