@@ -1,3 +1,5 @@
+import "source-map-support/register";
+
 import * as cxml from "../..";
 import * as Promise from "bluebird";
 var fs = require("fs");
@@ -6,6 +8,39 @@ import * as gpml from "../xmlns/pathvisio.org/GPML/2013a";
 import * as example from "../xmlns/dir-example";
 
 jasmine.DEFAULT_TIMEOUT_INTERVAL = 10 * 1000;
+
+test("Attach handlers for /Pathway/Biopax/bp:PublicationXref, using a namespace. Parse.", () => {
+  expect.assertions(24);
+
+  var parser = new cxml.Parser({
+    bp: "http://www.biopax.org/release/biopax-level3.owl#"
+  });
+
+  parser.attach(
+    class CustomHandler extends gpml.document.Pathway.Biopax.PublicationXref[0]
+      .constructor {
+      _before() {
+        expect(typeof this).toBe("object");
+      }
+
+      _after() {
+        expect(typeof this).toBe("object");
+      }
+    },
+    "/Pathway/Biopax/bp:PublicationXref"
+  );
+
+  return parser
+    .parse(
+      fs.createReadStream(path.resolve(__dirname, "../input/one-of-each.gpml")),
+      gpml.document
+    )
+    .then(doc => {
+      const publicationXref = doc.Pathway.Biopax.PublicationXref[1];
+      expect(publicationXref.ID.content).toBe("35623");
+      expect(typeof doc.Pathway.Graphics).toBe("object");
+    });
+});
 
 test("Attach handler w/ _before & _after. Parse string", () => {
   // NOTE: this assertion count is NOT taking into account

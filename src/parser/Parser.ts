@@ -1,8 +1,8 @@
+import "source-map-support/register";
 // This file is part of cxml, copyright (c) 2016-2017 BusFaster Ltd.
 // Released under the MIT license, see LICENSE.
 
-import "source-map-support/register";
-import { defaultsDeep, flow, keys, pick, toPairs } from "lodash";
+import { pick, toPairs } from "lodash";
 import * as stream from "stream";
 import * as Promise from "bluebird";
 import * as sax from "sax";
@@ -182,7 +182,7 @@ function getAttachmentMethod<T>(
     attribute
   }: ItemParsed) {
     return (
-      memberNamespace === state.namespaceTbl[namespace || ""][0].name &&
+      ["", memberNamespace].indexOf(namespace) > -1 &&
       name === memberName &&
       (!predicates ||
         predicates.reduce(function(acc, { left, op, right }: OpHandlerInput) {
@@ -261,6 +261,13 @@ function convertPrimitive(text: string, type: Rule) {
 }
 
 export class Parser<T> {
+  xpathNamespaceTbl: Record<string, string>;
+  constructor(xpathNamespaceTbl: Record<string, string> = { "": "" }) {
+    // TODO there is probably a better way to do this.
+    // It appears the context param in the parser.parser
+    // method may have be intended for the same purpose.
+    this.xpathNamespaceTbl = xpathNamespaceTbl;
+  }
   // TODO why do I need to use BTree<any> here?
   // I should be able to use BTree<T>
   bTree: BTree<any> & BTree<T> = new Map();
@@ -270,6 +277,7 @@ export class Parser<T> {
     },
     xpath: string
   ) {
+    const { xpathNamespaceTbl } = this;
     const proto = handler.prototype as CustomHandler;
     const realHandler = (handler as RuleClass).rule.handler;
     const realProto = realHandler.prototype as CustomHandler;
@@ -291,7 +299,7 @@ export class Parser<T> {
         // "/Pathway/@*"
         // because we need to first just match the element(s), and
         // then afterwards match any attribute.
-        let reversedXPathElMatchers = parse(xpath).reverse();
+        let reversedXPathElMatchers = parse(xpath, xpathNamespaceTbl).reverse();
         let xpathAttrMatcher: { attribute: string };
         if (reversedXPathElMatchers[0].attribute !== null) {
           xpathAttrMatcher = reversedXPathElMatchers.shift();

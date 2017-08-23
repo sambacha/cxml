@@ -1,4 +1,5 @@
 /// <reference path="./XPathParser.d.ts" />
+import "source-map-support/register";
 /*
 this worked:
 ./node_modules/pegjs/bin/pegjs src/topublish/xpathParser.pegjs && tsc --allowJs src/topublish/xpath.ts --outDir ./ && node xpath.js 
@@ -18,7 +19,7 @@ export type PredicateParsed = null | {
 };
 export interface ItemCommon {
   axis: string;
-  namespace: NullOrString;
+  namespace: string;
   name: NullOrString;
   attribute: NullOrString;
 }
@@ -31,7 +32,10 @@ export interface ItemParsed extends ItemCommon {
   predicates: PredicateParsed[];
 }
 
-export function parse(xpath: string): ItemParsed[] {
+export function parse(
+  xpath: string,
+  xpathNamespaceTbl: Record<string, string>
+): ItemParsed[] {
   return map(
     map(
       XPathParser.parse(xpath, {}),
@@ -54,9 +58,22 @@ export function parse(xpath: string): ItemParsed[] {
         });
       }
 
+      const namespacePrefix = x.namespace;
+      if (
+        !!namespacePrefix &&
+        (!xpathNamespaceTbl ||
+          !xpathNamespaceTbl.hasOwnProperty(namespacePrefix))
+      ) {
+        throw new Error(
+          `Must specify namespace table for prefix: ${namespacePrefix}`
+        );
+      }
+
       return {
         axis: x.axis,
-        namespace: x.namespace,
+        // NOTE: XPathParser uses "namespace" to refer to the namespace prefix.
+        // We are using "namespace" to refer to the namespace name (URI).
+        namespace: !!namespacePrefix ? xpathNamespaceTbl[namespacePrefix] : "",
         name: x.name,
         predicates: parsedPredicates,
         attribute: x.attribute
