@@ -20,6 +20,7 @@
     "target": "es5"
   },
   "files": [
-    "src/cxml.ts"
+    "src/cxml.ts",
+    "src/topublish/XPathParser.d.ts"
   ]
 }
