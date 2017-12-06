@@ -50,14 +50,6 @@ test("Attach handler w/ _before & _after. Parse string", () => {
 
   var parser = new cxml.Parser();
 
-test("Attach handler w/ _before & _after. Parse string", () => {
-  // NOTE: this assertion count is NOT taking into account
-  // the commented out expect below regarding
-  // "dir instanceof example.document.dir.constructor"
-  expect.assertions(8);
-
-  var parser = new cxml.Parser();
-
   var parser = new cxml.Parser();
 
   parser.attach(

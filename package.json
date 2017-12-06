@@ -64,7 +64,7 @@
     "@wikipathways/cxsd": "^0.2.4",
     "bluebird": "^3.4.7",
     "lodash": "^4.17.4",
-    "sax": "~1.2.1"
+    "sax": "^1.2.4"
   },
   "devDependencies": {
     "@types/circular-json": "^0.1.30",
