@@ -21,6 +21,6 @@
   },
   "files": [
     "src/cxml.ts",
-    "src/topublish/XPathParser.d.ts"
+    "src/spinoffs/XPathParser.d.ts"
   ]
 }
