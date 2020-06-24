@@ -1,8 +1,10 @@
 cxml
 ====
 
-[![build status](https://travis-ci.org/charto/cxml.svg?branch=master)](http://travis-ci.org/charto/cxml)
-[![dependency status](https://david-dm.org/charto/cxml.svg)](https://david-dm.org/charto/cxml)
+NOTE: the master branch of the source repo for this project did not compile. It also did not support xpath queries. [This fork](https://github.com/ariutta/cxml) updates the code so that master compiles, augments the testing and adds xpath support.
+
+[![build status](https://travis-ci.org/ariutta/cxml.svg?branch=master)](http://travis-ci.org/ariutta/cxml)
+[![dependency status](https://david-dm.org/ariutta/cxml.svg)](https://david-dm.org/ariutta/cxml)
 [![npm version](https://img.shields.io/npm/v/cxml.svg)](https://www.npmjs.com/package/cxml)
 
 ![Atom screenshot](src/screenshot.png)
@@ -54,16 +56,16 @@ Note the following:
 - A `dir` has a single owner but can contain many files, so `file` is an array but `owner` is not.
 - Output data types are as simple as possible while correctly representing the input.
 
-See the [example schema](https://github.com/charto/cxml/blob/master/test/cache/xsd/localhost/example-dir.xsd)
+See the [example schema](https://github.com/ariutta/cxml/blob/master/test/cache/xsd/localhost/example-dir.xsd)
 that makes it happen. Schemas for formats like
 [GML](http://schemas.opengis.net/gml/3.1.1/base/geometryPrimitives.xsd) and
 [SVG](http://www.w3.org/TR/2002/WD-SVG11-20020108/SVG.xsd) are nastier,
 but you don't have to look at them to use them through `cxml`.
 
 Relevant schema files should be downloaded and compiled using
-[cxsd](https://github.com/charto/cxsd) before using them to parse documents.
+[cxsd](https://github.com/ariutta/cxsd) before using them to parse documents.
 Check out the example schema
-[converted to TypeScript](https://github.com/charto/cxml/blob/master/test/xmlns/dir-example.d.ts).
+[converted to TypeScript](https://github.com/ariutta/cxml/blob/master/test/xmlns/dir-example.d.ts).
 
 There's much more. What if we parse an empty dir:
 
@@ -131,6 +133,6 @@ Related projects
 License
 =======
 
-[The MIT License](https://raw.githubusercontent.com/charto/cxml/master/LICENSE)
+[The MIT License](https://raw.githubusercontent.com/ariutta/cxml/master/LICENSE)
 
 Copyright (c) 2016-2017 BusFaster Ltd

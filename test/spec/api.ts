@@ -2,8 +2,8 @@ import "source-map-support/register";
 
 import * as cxml from "../..";
 import * as Promise from "bluebird";
-var fs = require("fs");
-var path = require("path");
+const fs = require("fs");
+const path = require("path");
 import * as gpml from "../xmlns/pathvisio.org/GPML/2013a";
 import * as example from "../xmlns/dir-example";
 

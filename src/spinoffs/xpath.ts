@@ -1,8 +1,7 @@
 /// <reference path="./XPathParser.d.ts" />
-import "source-map-support/register";
 /*
 this worked:
-./node_modules/pegjs/bin/pegjs src/topublish/xpathParser.pegjs && tsc --allowJs src/topublish/xpath.ts --outDir ./ && node xpath.js 
+./node_modules/pegjs/bin/pegjs src/spinoffs/xpathParser.pegjs && tsc --allowJs src/spinoffs/xpath.ts --outDir ./ && node xpath.js 
 //*/
 var XPathParser = require("./XPathParser");
 //import * as XPathParser from './XPathParser';
@@ -42,7 +41,8 @@ export function parse(
       (part: [string, string, string, PredicateRaw, string]) =>
         fromPairs(
           zip(["axis", "namespace", "name", "predicates", "attribute"], part)
-        ) as ItemParsedPredicateRaw
+        ) as Record<string, any>
+      // TODO we want this to be of type ItemParsedPredicateRaw
     ),
     function(x: ItemParsedPredicateRaw) {
       const predicates = x.predicates;

@@ -1,4 +1,3 @@
-import "source-map-support/register";
 // This file is part of cxml, copyright (c) 2016-2017 BusFaster Ltd.
 // Released under the MIT license, see LICENSE.
 
@@ -13,7 +12,7 @@ import { Rule, RuleClass, HandlerInstance } from "./Rule";
 import { MemberRef } from "../xml/MemberRef";
 import { State } from "./State";
 import { defaultContext } from "../importer/JS";
-import { parse, ItemParsed } from "../topublish/xpath";
+import { parse, ItemParsed } from "../spinoffs/xpath";
 
 export type ItemParsedKey = keyof ItemParsed;
 export type ItemParsedValue = ItemParsed[ItemParsedKey];

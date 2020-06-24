@@ -1,4 +1,3 @@
-import "source-map-support/register";
 // This file is part of cxml, copyright (c) 2016 BusFaster Ltd.
 // Released under the MIT license, see LICENSE.
 

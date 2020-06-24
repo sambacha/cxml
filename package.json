@@ -1,13 +1,13 @@
 {
   "name": "@wikipathways/cxml",
-  "version": "0.2.1-1",
+  "version": "0.2.1",
   "description": "Advanced schema-aware streaming XML parser",
   "main": "lib/cxml.js",
   "typings": "lib/cxml.d.ts",
   "scripts": {
     "build": "npm-run-all build:*",
     "build:clean": "mkdir -p lib && rm -rf lib/",
-    "build:pegjs": "mkdir -p lib/topublish && pegjs -o lib/topublish/XPathParser.js src/topublish/XPathParser.pegjs",
+    "build:pegjs": "mkdir -p lib/spinoffs && pegjs -o lib/spinoffs/XPathParser.js src/spinoffs/XPathParser.pegjs",
     "build:typescript": "tsc -p tsconfig.json",
     "test": "npm-run-all test:*",
     "test:build": "npm-run-all test:build:*",
@@ -57,24 +57,24 @@
     "typescript"
   ],
   "dependencies": {
-    "@types/bluebird": "^3.0.37",
-    "@types/lodash": "^4.14.66",
-    "@types/node": "^7.0.0",
+    "@types/bluebird": "^3.5.20",
+    "@types/lodash": "^4.14.104",
+    "@types/node": "^7.0.55",
     "@types/sax": "0.0.28",
     "@wikipathways/cxsd": "^0.2.4",
-    "bluebird": "^3.4.7",
-    "lodash": "^4.17.4",
-    "sax": "~1.2.1"
+    "bluebird": "^3.5.1",
+    "lodash": "^4.17.5",
+    "sax": "^1.2.4"
   },
   "devDependencies": {
-    "@types/circular-json": "^0.1.30",
+    "@types/circular-json": "^0.1.31",
     "@types/jest": "^19.2.4",
-    "circular-json": "^0.3.1",
+    "circular-json": "^0.3.3",
     "jest": "^20.0.4",
-    "npm-run-all": "^4.0.2",
+    "npm-run-all": "^4.1.2",
     "pegjs": "^0.10.0",
-    "source-map-support": "^0.4.15",
-    "ts-jest": "^20.0.10",
-    "typescript": "^2.4.2"
+    "source-map-support": "^0.4.18",
+    "ts-jest": "^20.0.14",
+    "typescript": "^2.7.2"
   }
 }
